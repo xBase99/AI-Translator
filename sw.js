@@ -1,4 +1,4 @@
-const CACHE_NAME = 'translator-v2.13C-ai';
+const CACHE_NAME = 'translator-v2.13D-ai';
 
 const STATIC_ASSETS = [
     './',

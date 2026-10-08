@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>🗣️ AI Voice Translator PWA (v2.13C AI)</title>
+    <title>🗣️ AI Voice Translator PWA (v2.13D AI)</title>
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
@@ -320,7 +320,7 @@
         </a>
     </div>
     <div class="copyright-bar">
-        © 2026 2.13C AI Voice Translation System. All rights reserved.
+        © 2026 2.13D AI Voice Translation System. All rights reserved.
     </div>
 </div>
 
@@ -947,18 +947,56 @@ let sttInterimText = '';
 let lastFinalChunk = '';
 let lastFinalChunkAt = 0;
 let recentFinalChunks = [];
+let sttRestartGuardUntil = 0;
 
 function normalizeFinalText(text){
     return String(text||'').toLowerCase().replace(/[\s\u00a0]+/g,' ').replace(/[.!?。！？…]+$/g,'').trim();
 }
-function isRecentDuplicateFinal(text){
+function tokenizeSpeech(text){
+    const t=normalizeFinalText(text);
+    if(!t) return [];
+    // For languages that usually contain spaces, compare word tokens. For compact CJK, compare characters.
+    if(/\s/.test(t)) return t.split(/\s+/).filter(Boolean);
+    if(/[가-힣\u3040-\u30ff\u3400-\u9fff]/.test(t)) return Array.from(t);
+    return [t];
+}
+function overlapNovelSuffix(previous,current){
+    const a=tokenizeSpeech(previous), b=tokenizeSpeech(current);
+    if(!b.length) return '';
+    if(!a.length) return String(current||'').trim();
+    const max=Math.min(a.length,b.length);
+    let overlap=0;
+    for(let n=max;n>=1;n--){
+        let same=true;
+        for(let i=0;i<n;i++) if(a[a.length-n+i]!==b[i]) { same=false; break; }
+        if(same){ overlap=n; break; }
+    }
+    if(overlap===b.length) return '';
+    if(overlap===0) return String(current||'').trim();
+    const original=String(current||'').trim();
+    if(/\s/.test(normalizeFinalText(current))) return original.split(/\s+/).slice(overlap).join(' ');
+    return Array.from(original).slice(overlap).join('');
+}
+function sanitizeFinalSpeech(text){
+    text=String(text||'').trim();
     const key=normalizeFinalText(text);
-    if(!key) return true;
+    if(!key) return '';
     const now=Date.now();
-    recentFinalChunks=recentFinalChunks.filter(x=>now-x.at<5000);
-    if(recentFinalChunks.some(x=>x.key===key)) return true;
-    recentFinalChunks.push({key,at:now});
-    return false;
+    recentFinalChunks=recentFinalChunks.filter(x=>now-x.at<15000);
+    if(recentFinalChunks.some(x=>x.key===key)) return '';
+
+    // Chrome may replay the last final chunk when a recognition session auto-restarts.
+    const tail=[pendingClause, committedSTTText.split('\n').slice(-2).join(' ')].filter(Boolean).join(' ');
+    const tailKey=normalizeFinalText(tail);
+    if(now < sttRestartGuardUntil && tailKey && (tailKey.endsWith(key) || tailKey.includes(' '+key))) return '';
+
+    // Remove only the repeated prefix when Chrome returns an overlapping cumulative final.
+    let novel=overlapNovelSuffix(lastFinalChunk,text);
+    if(!novel) return '';
+    const novelKey=normalizeFinalText(novel);
+    if(!novelKey) return '';
+    recentFinalChunks.push({key:normalizeFinalText(text),at:now});
+    return novel;
 }
 
 const STT_TIMING_PROFILES = {
@@ -1024,6 +1062,9 @@ function flushRecognizedPhrase(force=false){
 
 function queueIncrementalTranslation(text, speakerId) {
     text=(text||'').trim(); if(!text) return;
+    const key=normalizeFinalText(text);
+    const recent=translatedSegments.slice(-4).map(x=>normalizeFinalText(x.text));
+    if(key && recent.includes(key)) return; // final safety: never enqueue the same recent phrase twice
     const targetLang=document.getElementById('targetLangSelect').value;
     const sourceLang=(inputText.dataset.sourceLang||'en').split('-')[0];
     const item={id:++translationSeq,speakerId,text,result:'',targetLang,sourceLang,status:'pending'};
@@ -1127,7 +1168,9 @@ function startSTT(langCode) {
             if(!t) continue;
             if(event.results[i].isFinal) {
                 const now=Date.now();
-                if(!isRecentDuplicateFinal(t)) { lastFinalChunk=t; lastFinalChunkAt=now; acceptFinalSpeech(t); }
+                const novel=sanitizeFinalSpeech(t);
+                lastFinalChunk=t; lastFinalChunkAt=now;
+                if(novel) acceptFinalSpeech(novel);
             }
             else interim=joinSpeech(interim,t);
         }
@@ -1145,7 +1188,7 @@ function startSTT(langCode) {
     recognition.onend=()=>{
         if(activeRecognition!==recognition)return;
         if(!sttManualStop){
-            sttRestartTimer=setTimeout(()=>{if(!sttManualStop&&activeRecognition===recognition){try{recognition.start();}catch(e){}}},300);
+            sttRestartTimer=setTimeout(()=>{if(!sttManualStop&&activeRecognition===recognition){try{sttRestartGuardUntil=Date.now()+3000; recognition.start();}catch(e){}}},300);
         } else setSTTVisual(false);
     };
     try{recognition.start();}catch(e){ocrStatus.textContent=currentUILang==='ko'?'❌ 음성 인식 시작 실패':'❌ Speech recognition could not start';setSTTVisual(false);}
