@@ -1,8 +1,8 @@
 {
   "id": "./index.html",
-  "name": "8개국어 AI 번역기 (v2.11 AI)",
+  "name": "AI Voice Translator (v2.13)",
   "short_name": "AI번역",
-  "description": "IndexedDB 오프라인 AI 모델 저장소 및 음성 번역 PWA",
+  "description": "Pause-aware streaming speech recognition and translation PWA with English/Korean UI and browser-managed offline EN/KO/DE translation when supported.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",

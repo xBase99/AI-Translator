@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>🗣️ 8-Lang Translator PWA (v2.12 AI)</title>
+    <title>🗣️ AI Voice Translator PWA (v2.13A AI)</title>
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
@@ -189,14 +189,16 @@
         .result-toolbar > label:first-child { margin:0 !important; }
         .result-size-label { display:flex; align-items:center; gap:.35rem; font-size:.76rem; white-space:nowrap; }
         #resultSizeSelect { width:auto; padding:.28rem .42rem; font-size:.78rem; }
-        #sentenceList.result-size-5 { min-height:190px; max-height:240px; }
-        #sentenceList.result-size-10 { min-height:310px; max-height:420px; }
-        #sentenceList.result-size-15 { min-height:430px; max-height:600px; }
+        #sentenceList.result-size-5 { height:240px; min-height:240px; max-height:240px; overflow-y:auto; }
+        #sentenceList.result-size-10 { height:420px; min-height:420px; max-height:420px; overflow-y:auto; }
+        #sentenceList.result-size-15 { height:600px; min-height:600px; max-height:600px; overflow-y:auto; }
         .translation-pending { opacity:.65; font-style:italic; }
+        #sentenceList { overscroll-behavior:contain; scrollbar-gutter:stable; }
+        .timing-note { font-size:.76rem; color:var(--text-muted); line-height:1.4; }
         @media (max-width:480px) {
-          #sentenceList.result-size-5 { min-height:170px; max-height:220px; }
-          #sentenceList.result-size-10 { min-height:290px; max-height:390px; }
-          #sentenceList.result-size-15 { min-height:410px; max-height:560px; }
+          #sentenceList.result-size-5 { height:220px; min-height:220px; max-height:220px; overflow-y:auto; }
+          #sentenceList.result-size-10 { height:390px; min-height:390px; max-height:390px; overflow-y:auto; }
+          #sentenceList.result-size-15 { height:560px; min-height:560px; max-height:560px; overflow-y:auto; }
           .result-size-label span { display:none; }
         }
     </style>
@@ -205,12 +207,8 @@
 
 <div class="container">
     <div class="mobile-header-bar">
-        <h1 id="uiTitle">🗣️ 8-Lang Translator</h1>
+        <h1 id="uiTitle">🗣️ AI Voice Translator</h1>
         <div class="header-btn-group">
-            <select id="uiLangSelect" class="ui-lang-select" onchange="changeUILanguage(this.value)">
-                <option value="ko">🇰🇷 한국어</option>
-                <option value="en">🇺🇸 English</option>
-            </select>
             <button id="btnOpenVocab" class="btn-icon btn-vocab">📖 <span id="uiBtnVocab">단어장</span></button>
             <a href="https://www.trip.com/t/77sfZ47lEW2" target="_blank" class="btn-icon btn-trip">✈️ Trip</a>
             <button id="btnOpenModels" class="btn-icon">🤖 <span id="uiBtnModels">AI Models</span></button>
@@ -301,7 +299,7 @@
         </a>
     </div>
     <div class="copyright-bar">
-        © 2026 2.12 AI Multilingual Conversation System. All rights reserved.
+        © 2026 2.13 AI Voice Translation System. All rights reserved.
     </div>
 </div>
 
@@ -341,26 +339,22 @@
                     <option value="paragraph" id="optSplitParagraph">Paragraph Splitting (Enter Key)</option>
                 </select>
             </div>
-
             <div class="setting-item">
-                <label id="uiSettingPauseLabel">🎙️ Speech Recognition Pause:</label>
-                <select id="sttPauseSelect" class="large-select">
-                    <option value="0" id="optPauseDefault">Default (Browser Automatic)</option>
-                    <option value="3" id="optPause3">3 seconds</option>
-                    <option value="5" selected id="optPause5">5 seconds (Recommended)</option>
-                    <option value="8" id="optPause8">8 seconds</option>
-                    <option value="12" id="optPause12">12 seconds</option>
-                    <option value="continuous" id="optPauseContinuous">Keep Listening (Manual Stop)</option>
+                <label id="uiSettingUILangLabel">🗣️ UI Language:</label>
+                <select id="settingsUILangSelect" class="large-select" onchange="changeUILanguage(this.value)">
+                    <option value="en">English</option>
+                    <option value="ko">한국어</option>
                 </select>
             </div>
 
             <div class="setting-item">
-                <label id="uiSpeakerBreakLabel">👥 Speaker Change Line Break:</label>
-                <select id="speakerBreakSelect" class="large-select">
-                    <option value="on" selected id="optSpeakerOn">On (Detect Voice Tone Change)</option>
-                    <option value="off" id="optSpeakerOff">Off</option>
+                <label id="uiTimingLabel">⚡ Speech Translation Timing:</label>
+                <select id="sttTimingSelect" class="large-select" onchange="saveSpeechTiming(this.value)">
+                    <option value="fast" id="optTimingFast">⚡ Fast — 0.8 sec pause</option>
+                    <option value="realtime" id="optTimingRealtime" selected>🚀 Real-time — 1.3 sec pause (Recommended)</option>
+                    <option value="accuracy" id="optTimingAccuracy">🎯 Accuracy — 2.0 sec pause</option>
                 </select>
-                <small id="uiSpeakerNote" style="color:#64748b; line-height:1.4;">Does not determine gender; separates speakers as Speaker 1, Speaker 2 based on voice characteristics.</small>
+                <small id="uiTimingNote" class="timing-note">No punctuation is required. A pause, a final speech result, and phrase length are combined to decide when to translate.</small>
             </div>
 
             <div class="setting-item">
@@ -403,58 +397,39 @@
         </div>
         <div class="modal-body">
             <div class="ios-notice">
-                <b id="uiNoticeTitle">💾 IndexedDB Permanent Storage</b><br>
+                <b id="uiNoticeTitle">📱 Browser On-device Model Status</b><br>
                 <span id="uiNoticeDetail">
-                • Models are stored permanently. <b>No re-downloading needed upon browser refresh.</b><br>
-                • Download over Wi-Fi is recommended.
+                • Actual offline support depends on this device’s browser Translator API.<br>
+                • Tap <b>Prepare / Check</b> to verify and prepare both directions.
                 </span>
             </div>
 
             <div class="model-card">
                 <div>
                     <div class="model-info-title">🇺🇸 English ↔ 🇰🇷 Korean (en-ko)</div>
-                    <div class="model-info-detail"><span class="uiSizeLabel">Size</span>: ~135 MB | <span class="uiStatusLabel">Status</span>: <span id="st-en-ko" class="st-text" style="color:red; font-weight:700;">Not Installed</span></div>
+                    <div class="model-info-detail"><span class="uiStatusLabel">Status</span>: <span id="st-en-ko" class="st-text">Checking...</span></div>
                 </div>
-                <button id="btn-dl-en-ko" class="btn-download uiBtnDl" onclick="handleModelAction('en-ko')">Download</button>
+                <button id="btn-dl-en-ko" class="btn-download" onclick="handleModelAction('en-ko')">Prepare</button>
             </div>
-
             <div class="model-card">
                 <div>
-                    <div class="model-info-title">🇯🇵 Japanese ↔ 🇰🇷 Korean (ja-ko)</div>
-                    <div class="model-info-detail"><span class="uiSizeLabel">Size</span>: ~130 MB | <span class="uiStatusLabel">Status</span>: <span id="st-ja-ko" class="st-text" style="color:red; font-weight:700;">Not Installed</span></div>
+                    <div class="model-info-title">🇺🇸 English ↔ 🇩🇪 German (en-de)</div>
+                    <div class="model-info-detail"><span class="uiStatusLabel">Status</span>: <span id="st-en-de" class="st-text">Checking...</span></div>
                 </div>
-                <button id="btn-dl-ja-ko" class="btn-download uiBtnDl" onclick="handleModelAction('ja-ko')">Download</button>
+                <button id="btn-dl-en-de" class="btn-download" onclick="handleModelAction('en-de')">Prepare</button>
             </div>
-
             <div class="model-card">
                 <div>
-                    <div class="model-info-title">🇩🇪 German ↔ 🇰🇷 Korean (de-ko)</div>
-                    <div class="model-info-detail"><span class="uiSizeLabel">Size</span>: ~140 MB | <span class="uiStatusLabel">Status</span>: <span id="st-de-ko" class="st-text" style="color:red; font-weight:700;">Not Installed</span></div>
+                    <div class="model-info-title">🇰🇷 Korean ↔ 🇩🇪 German (ko-de)</div>
+                    <div class="model-info-detail"><span class="uiStatusLabel">Status</span>: <span id="st-ko-de" class="st-text">Checking...</span></div>
                 </div>
-                <button id="btn-dl-de-ko" class="btn-download uiBtnDl" onclick="handleModelAction('de-ko')">Download</button>
-            </div>
-
-            <div class="model-card">
-                <div>
-                    <div class="model-info-title">🇫🇷 French ↔ 🇰🇷 Korean (fr-ko)</div>
-                    <div class="model-info-detail"><span class="uiSizeLabel">Size</span>: ~140 MB | <span class="uiStatusLabel">Status</span>: <span id="st-fr-ko" class="st-text" style="color:red; font-weight:700;">Not Installed</span></div>
-                </div>
-                <button id="btn-dl-fr-ko" class="btn-download uiBtnDl" onclick="handleModelAction('fr-ko')">Download</button>
-            </div>
-
-            <div class="model-card">
-                <div>
-                    <div class="model-info-title">🇪🇸 Spanish ↔ 🇰🇷 Korean (es-ko)</div>
-                    <div class="model-info-detail"><span class="uiSizeLabel">Size</span>: ~135 MB | <span class="uiStatusLabel">Status</span>: <span id="st-es-ko" class="st-text" style="color:red; font-weight:700;">Not Installed</span></div>
-                </div>
-                <button id="btn-dl-es-ko" class="btn-download uiBtnDl" onclick="handleModelAction('es-ko')">Download</button>
+                <button id="btn-dl-ko-de" class="btn-download" onclick="handleModelAction('ko-de')">Prepare</button>
             </div>
         </div>
         <button id="btnCloseModels" class="btn-secondary btn-large" style="width:100%;"><span id="uiBtnCloseModels">Close</span></button>
     </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js" async></script>
 
 <script>
 // IndexedDB 오프라인 AI 저장소
@@ -528,12 +503,12 @@ if ('serviceWorker' in navigator) {
     });
 }
 
-let currentUILang = 'ko';
+let currentUILang = 'en';
 let downloadedModels = {};
 
 const i18nDict = {
     'ko': {
-        uiTitle: '🗣️ 8-Lang Translator',
+        uiTitle: '🗣️ AI Voice Translator',
         uiBtnModels: 'AI 모델',
         uiLabelInput: '입력 문장/문단:',
         uiSourceLabel: '말하는 언어',
@@ -548,7 +523,7 @@ const i18nDict = {
         uiSpeakerNote: '성별을 판정하지 않고 음성 특성 변화에 따라 화자 1, 화자 2처럼 구분합니다.',
         optModeAuto: '자동 모드 (오프라인 우선 + 온라인 백업)',
         optModeOnline: '온라인 모드 (Google API)',
-        optModeOffline: '오프라인 전용 모드 (저장된 AI)',
+        optModeOffline: '오프라인 전용 모드 (브라우저 온디바이스 AI)',
         uiBtnClear: '지우기',
         uiBtnPhoto: '📷 사진 속 글자 읽기 (카메라/갤러리)',
         uiBtnPlay: '전체 읽기',
@@ -560,21 +535,27 @@ const i18nDict = {
         uiLabelResult: '번역 결과:',
         uiSTTStop: '중단', uiPracticeTitle: '🔁 다시 듣기 연습', uiSpeakRecognized: '인식 문장 듣기', uiSpeakTranslated: '번역 문장 듣기', uiQRTitle: '▦ 현재 앱 주소 QR',
         uiSettingsTitle: '⚙️ 환경 설정',
+        uiSettingUILangLabel: '🗣️ UI 언어:',
+        uiTimingLabel: '⚡ 음성 번역 반응 속도:',
+        optTimingFast: '⚡ 빠르게 — 0.8초 침묵',
+        optTimingRealtime: '🚀 실시간 — 1.3초 침묵 (권장)',
+        optTimingAccuracy: '🎯 정확도 — 2.0초 침묵',
+        uiTimingNote: '마침표가 없어도 침묵 시간, 음성 인식 확정 결과, 문장 길이를 함께 판단해 번역합니다.',
         uiSettingSplitLabel: '✂️ 글 분할 자르기 방식:',
         uiSettingModeLabel: '🌐 번역 모드 선택:',
         uiSettingTargetLabel: '🎯 번역 대상 언어 선택:',
         uiSettingAutoPlayLabel: '🔊 자동 읽기 (Auto-Play):',
         uiBtnSaveSettings: '저장 및 닫기',
-        uiModelsTitle: '🤖 8개국어 오프라인 AI 모델 저장소',
-        uiNoticeTitle: '💾 IndexedDB 특수 저장소 영구 보관',
-        uiNoticeDetail: '• 모델을 받으면 영구 저장소에 저장되어 <b>브라우저를 새로고침(리프레시)해도 재다운로드할 필요가 없습니다.</b><br>• 용량이 크므로 Wi-Fi 환경에서 필요한 언어를 미리 설치하세요.',
+        uiModelsTitle: '🤖 오프라인 AI 모델 (영어·한국어·독일어)',
+        uiNoticeTitle: '📱 브라우저 온디바이스 모델 상태',
+        uiNoticeDetail: '• 실제 오프라인 가능 여부는 이 기기의 브라우저 Translator API가 결정합니다.<br>• <b>준비/확인</b>을 누르면 양방향 지원 여부를 확인하고 필요한 모델을 브라우저가 준비합니다.',
         uiBtnCloseModels: '닫기',
         uiSizeLabel: '용량',
         uiStatusLabel: '상태',
         uiUninstalled: '미설치',
         uiInstalled: '영구 저장소 보관 완료',
         netOnline: '🌐 <b>Online 모드 연결됨:</b> 오프라인 모델이 부족해도 온라인 Google API로 자동 전환됩니다.',
-        netOffline: '📡 <b>Offline 모드:</b> 인터넷 연결 끊김. 영구 저장소의 오프라인 AI 모델로 번역합니다.',
+        netOffline: '📡 <b>Offline:</b> 인터넷이 없습니다. 브라우저 온디바이스 모델이 지원되는 언어만 번역됩니다.',
         phInput: '문장을 입력하거나 마이크 버튼을 누르세요...',
         optSplitSentence: '문장 단위 자르기 (. ! ? 기준)',
         optSplitParagraph: '문단 단위 자르기 (줄바꿈/엔터 기준)',
@@ -582,7 +563,7 @@ const i18nDict = {
         optAutoOff: '꺼짐 (수동 버튼 작동)'
     },
     'en': {
-        uiTitle: '🗣️ 8-Lang Translator',
+        uiTitle: '🗣️ AI Voice Translator',
         uiBtnModels: 'AI Models',
         uiLabelInput: 'Input Text:',
         uiSourceLabel: 'Spoken Language',
@@ -597,7 +578,7 @@ const i18nDict = {
         uiSpeakerNote: 'Does not determine gender; separates speakers as Speaker 1, Speaker 2 based on voice characteristics.',
         optModeAuto: 'Auto Mode (Offline First + Online Backup)',
         optModeOnline: 'Online Mode (Google API)',
-        optModeOffline: 'Offline Only Mode (Stored AI)',
+        optModeOffline: 'Offline Only Mode (Browser On-device AI)',
         uiBtnClear: 'Clear',
         uiBtnPhoto: '📷 Read Text in Photo (Camera/Gallery)',
         uiBtnPlay: 'Play All',
@@ -609,21 +590,27 @@ const i18nDict = {
         uiLabelResult: 'Translation Result:',
         uiSTTStop: 'Stop', uiPracticeTitle: '🔁 Listening Practice', uiSpeakRecognized: 'Recognized Sentence', uiSpeakTranslated: 'Translated Sentence', uiQRTitle: '▦ Current App URL QR',
         uiSettingsTitle: '⚙️ Settings',
+        uiSettingUILangLabel: '🗣️ UI Language:',
+        uiTimingLabel: '⚡ Speech Translation Timing:',
+        optTimingFast: '⚡ Fast — 0.8 sec pause',
+        optTimingRealtime: '🚀 Real-time — 1.3 sec pause (Recommended)',
+        optTimingAccuracy: '🎯 Accuracy — 2.0 sec pause',
+        uiTimingNote: 'No punctuation is required. Pause time, final speech results, and phrase length are combined to decide when to translate.',
         uiSettingSplitLabel: '✂️ Text Splitting Method:',
         uiSettingModeLabel: '🌐 Translation Mode:',
         uiSettingTargetLabel: '🎯 Target Language:',
         uiSettingAutoPlayLabel: '🔊 Auto-Play Speech:',
         uiBtnSaveSettings: 'Save & Close',
-        uiModelsTitle: '🤖 8-Lang Offline AI Models',
-        uiNoticeTitle: '💾 IndexedDB Permanent Storage',
-        uiNoticeDetail: '• Models are stored permanently. <b>No re-downloading needed upon browser refresh.</b><br>• Wi-Fi download is recommended.',
+        uiModelsTitle: '🤖 Offline AI Models (EN · KO · DE)',
+        uiNoticeTitle: '📱 Browser On-device Model Status',
+        uiNoticeDetail: '• Actual offline support depends on this device’s browser Translator API.<br>• Tap <b>Prepare / Check</b> to verify both directions and let the browser prepare required models.',
         uiBtnCloseModels: 'Close',
         uiSizeLabel: 'Size',
         uiStatusLabel: 'Status',
         uiUninstalled: 'Not Installed',
         uiInstalled: 'Stored in Permanent DB',
         netOnline: '🌐 <b>Online Mode:</b> Google API Connected',
-        netOffline: '📡 <b>Offline Mode:</b> No internet. Translating using stored AI models.',
+        netOffline: '📡 <b>Offline:</b> No internet. Only language pairs supported by the browser’s on-device model can translate.',
         phInput: 'Enter text or speak using the microphone...',
         optSplitSentence: 'Sentence Splitting (. ! ?)',
         optSplitParagraph: 'Paragraph Splitting (Enter Key)',
@@ -633,7 +620,11 @@ const i18nDict = {
 };
 
 function changeUILanguage(lang) {
+    lang = (lang === 'ko') ? 'ko' : 'en';
     currentUILang = lang;
+    localStorage.setItem('translator_ui_lang_v213', lang);
+    const topSel=document.getElementById('uiLangSelect'); if(topSel) topSel.value=lang;
+    const settingsSel=document.getElementById('settingsUILangSelect'); if(settingsSel) settingsSel.value=lang;
     const dict = i18nDict[lang] || i18nDict['en'];
     
     for (let key in dict) {
@@ -804,7 +795,7 @@ document.getElementById('btnCloseVocab').onclick = () => vocabModal.style.displa
 
 document.getElementById('btnOpenSettings').onclick = () => settingsModal.style.display = 'flex';
 document.getElementById('closeSettings').onclick = () => settingsModal.style.display = 'none';
-document.getElementById('btnSaveSettings').onclick = () => { settingsModal.style.display = 'none'; renderTranslation(); };
+document.getElementById('btnSaveSettings').onclick = () => { saveSpeechTiming(document.getElementById('sttTimingSelect')?.value||'realtime'); changeUILanguage(document.getElementById('settingsUILangSelect')?.value||'en'); settingsModal.style.display = 'none'; if(!activeRecognition) renderTranslation(); };
 
 document.getElementById('btnShowQR').onclick = () => { const url=location.href.split('#')[0]; document.getElementById('qrUrl').textContent=url; document.getElementById('qrImage').src='https://api.qrserver.com/v1/create-qr-code/?size=300x300&data='+encodeURIComponent(url); qrModal.style.display='flex'; };
 document.getElementById('closeQR').onclick = document.getElementById('btnCloseQR').onclick = () => qrModal.style.display='none';
@@ -813,69 +804,59 @@ document.getElementById('btnOpenModels').onclick = () => modelsModal.style.displ
 document.getElementById('closeModels').onclick = () => modelsModal.style.display = 'none';
 document.getElementById('btnCloseModels').onclick = () => modelsModal.style.display = 'none';
 
+const OFFLINE_PAIRS = ['en-ko','en-de','ko-de'];
+
 async function checkStoredModels() {
-    await initDB();
-    const pairs = ['en-ko', 'ja-ko', 'de-ko', 'fr-ko', 'es-ko'];
-    for (let pair of pairs) {
-        const storedData = await getModelFromDB(pair);
-        if (storedData) downloadedModels[pair] = storedData;
-    }
-    updateModelUIState();
+    try { await initDB(); } catch(e) {}
+    await updateModelUIState();
 }
 
-function updateModelUIState() {
-    const pairs = ['en-ko', 'ja-ko', 'de-ko', 'fr-ko', 'es-ko'];
-    const dict = i18nDict[currentUILang] || i18nDict['en'];
+async function pairAvailability(a,b) {
+    if (!('Translator' in self)) return 'unavailable';
+    try { return await Translator.availability({sourceLanguage:a,targetLanguage:b}); }
+    catch(e) { return 'unavailable'; }
+}
 
-    pairs.forEach(pair => {
-        const stSpan = document.getElementById(`st-${pair}`);
-        const btn = document.getElementById(`btn-dl-${pair}`);
-        if (!stSpan || !btn) return;
-
-        if (downloadedModels[pair]) {
-            stSpan.textContent = dict.uiInstalled;
-            stSpan.style.color = 'green';
-            btn.textContent = (currentUILang === 'ko') ? '삭제' : 'Delete';
-            btn.classList.add('btn-delete');
-        } else {
-            stSpan.textContent = dict.uiUninstalled;
-            stSpan.style.color = 'red';
-            btn.textContent = (currentUILang === 'ko') ? '다운로드' : 'Download';
-            btn.classList.remove('btn-delete');
+async function updateModelUIState() {
+    const isKo = currentUILang === 'ko';
+    for (const pair of OFFLINE_PAIRS) {
+        const [a,b]=pair.split('-');
+        const stSpan=document.getElementById(`st-${pair}`);
+        const btn=document.getElementById(`btn-dl-${pair}`);
+        if(!stSpan||!btn) continue;
+        if(!('Translator' in self)) {
+            stSpan.textContent=isKo?'이 브라우저에서 지원 안 됨':'Not supported by this browser';
+            stSpan.style.color='#dc2626'; btn.disabled=true; btn.textContent=isKo?'지원 안 됨':'Unsupported';
+            continue;
         }
-    });
+        btn.disabled=false; btn.textContent=isKo?'준비/확인':'Prepare / Check';
+        const [ab,ba]=await Promise.all([pairAvailability(a,b),pairAvailability(b,a)]);
+        if(ab==='unavailable' || ba==='unavailable') { stSpan.textContent=isKo?'일부 방향 지원 안 됨':'One direction unavailable'; stSpan.style.color='#dc2626'; }
+        else if(ab==='available' && ba==='available') { stSpan.textContent=isKo?'오프라인 사용 가능':'Available offline'; stSpan.style.color='#059669'; }
+        else { stSpan.textContent=isKo?'다운로드/준비 필요':'Download / preparation required'; stSpan.style.color='#d97706'; }
+    }
 }
 
 async function handleModelAction(pair) {
-    const [a,b] = pair.split('-');
-    if (!('Translator' in self)) {
-        alert('이 브라우저는 실제 온디바이스 Translator API를 지원하지 않습니다. 오프라인 번역은 지원되는 Chrome/Chromium 환경에서 사용할 수 있습니다.');
-        return;
-    }
-    const sourceLanguage = a;
-    const targetLanguage = b;
+    const [a,b]=pair.split('-');
+    if (!('Translator' in self)) { alert(currentUILang==='ko'?'이 브라우저는 온디바이스 Translator API를 지원하지 않습니다.':'This browser does not support the on-device Translator API.'); return; }
+    const stSpan=document.getElementById(`st-${pair}`);
     try {
-        const availability = await Translator.availability({sourceLanguage, targetLanguage});
-        if (availability === 'unavailable') {
-            alert(`[${pair}] 온디바이스 번역 모델을 이 브라우저에서 사용할 수 없습니다.`);
-            return;
+        if(stSpan){ stSpan.textContent=currentUILang==='ko'?'모델 준비 중...':'Preparing models...'; stSpan.style.color='#d97706'; }
+        for (const [sourceLanguage,targetLanguage] of [[a,b],[b,a]]) {
+            const availability=await pairAvailability(sourceLanguage,targetLanguage);
+            if(availability==='unavailable') throw new Error(`${sourceLanguage}→${targetLanguage} unavailable`);
+            const key=`${sourceLanguage}-${targetLanguage}`;
+            if(!browserTranslators.has(key)) {
+                const translator=await Translator.create({sourceLanguage,targetLanguage,monitor(m){m.addEventListener('downloadprogress',e=>{if(stSpan)stSpan.textContent=`${currentUILang==='ko'?'다운로드':'Download'} ${Math.round(e.loaded*100)}%`;});}});
+                browserTranslators.set(key,translator);
+            }
         }
-        const stSpan = document.getElementById(`st-${pair}`);
-        if (stSpan) { stSpan.textContent = '모델 준비 중...'; stSpan.style.color = 'orange'; }
-        const translator = await Translator.create({
-            sourceLanguage, targetLanguage,
-            monitor(m) { m.addEventListener('downloadprogress', e => {
-                if (stSpan) stSpan.textContent = `다운로드 ${Math.round(e.loaded*100)}%`;
-            }); }
-        });
-        browserTranslators.set(`${sourceLanguage}-${targetLanguage}`, translator);
-        downloadedModels[pair] = {browserManaged:true, version:'2.11A'};
-        await saveModelToDB(pair, downloadedModels[pair]);
-        updateModelUIState();
-        alert(`[${pair}] 실제 온디바이스 번역 모델 준비 완료.`);
+        await updateModelUIState();
+        alert(currentUILang==='ko'?'이 언어 조합의 오프라인 번역 준비가 완료되었습니다.':'This language pair is ready for offline translation.');
     } catch(e) {
-        alert(`오프라인 모델 준비 실패: ${e.message || e}`);
-        updateModelUIState();
+        await updateModelUIState();
+        alert((currentUILang==='ko'?'오프라인 준비 실패: ':'Offline preparation failed: ')+(e.message||e));
     }
 }
 
@@ -930,14 +911,8 @@ function playAllSentences() {
 function pauseSpeech() { if (synth) synth.pause(); }
 function stopSpeech() { if (synth) synth.cancel(); }
 
-// 마이크 음성 인식 (STT) - 연속 인식 + 화자 변화 감지 + 증분 번역
-let speakerAudioStream = null;
-let speakerAudioContext = null;
-let speakerAnalyser = null;
-let speakerPitchTimer = null;
+// 마이크 음성 인식 (STT) - v2.13 pause-aware streaming algorithm
 let currentSpeakerId = 1;
-let lastPitchMedian = null;
-let pendingSpeakerChange = false;
 let committedSTTText = '';
 let pendingClause = '';
 let translatedSegments = [];
@@ -946,96 +921,74 @@ let translationActive = 0;
 const TRANSLATION_CONCURRENCY = 3;
 const translationQueue = [];
 let resultWindowSize = Number(localStorage.getItem('result_window_size_v212') || 10);
+let sttSilenceTimer = null;
+let sttInterimText = '';
+let lastFinalChunk = '';
+let lastFinalChunkAt = 0;
 
-function isSentenceComplete(text) {
-    return /[.!?。！？…][\"'”’）)\]]*\s*$/.test((text || '').trim());
+const STT_TIMING_PROFILES = {
+    fast:     { silenceMs: 800,  minChars: 3, maxChars: 80 },
+    realtime: { silenceMs: 1300, minChars: 4, maxChars: 110 },
+    accuracy: { silenceMs: 2000, minChars: 5, maxChars: 150 }
+};
+
+function getSpeechTimingMode(){
+    const v=document.getElementById('sttTimingSelect')?.value || localStorage.getItem('stt_timing_v213') || 'realtime';
+    return STT_TIMING_PROFILES[v] ? v : 'realtime';
 }
-
-function median(values) {
-    if (!values.length) return null;
-    const a = [...values].sort((x,y)=>x-y);
-    const m = Math.floor(a.length/2);
-    return a.length % 2 ? a[m] : (a[m-1]+a[m])/2;
+function getSpeechTimingProfile(){ return STT_TIMING_PROFILES[getSpeechTimingMode()]; }
+function saveSpeechTiming(v){
+    if(!STT_TIMING_PROFILES[v]) v='realtime';
+    localStorage.setItem('stt_timing_v213',v);
+    const el=document.getElementById('sttTimingSelect'); if(el) el.value=v;
 }
-
-function estimatePitch(buffer, sampleRate) {
-    let rms = 0;
-    for (let i=0;i<buffer.length;i++) rms += buffer[i]*buffer[i];
-    rms = Math.sqrt(rms/buffer.length);
-    if (rms < 0.018) return null;
-    let bestOffset=-1, bestCorr=0;
-    const minOffset=Math.floor(sampleRate/350), maxOffset=Math.min(Math.floor(sampleRate/70), buffer.length/2);
-    for (let off=minOffset; off<=maxOffset; off++) {
-        let corr=0;
-        for (let i=0;i<buffer.length-off;i++) corr += buffer[i]*buffer[i+off];
-        if (corr>bestCorr) { bestCorr=corr; bestOffset=off; }
+function hasTerminalPunctuation(text){ return /[.!?。！？…]["'”’）)\]]*\s*$/.test((text||'').trim()); }
+function joinSpeech(a,b){
+    a=(a||'').trim(); b=(b||'').trim();
+    if(!a) return b; if(!b) return a;
+    // CJK normally does not need a forced space; Latin speech does.
+    if(/[가-힣\u3040-\u30ff\u3400-\u9fff]$/.test(a) || /^[가-힣\u3040-\u30ff\u3400-\u9fff]/.test(b)) return a+b;
+    return a+' '+b;
+}
+function clearSTTSilenceTimer(){ if(sttSilenceTimer){ clearTimeout(sttSilenceTimer); sttSilenceTimer=null; } }
+function scheduleSpeechFlush(){
+    clearSTTSilenceTimer();
+    const p=getSpeechTimingProfile();
+    sttSilenceTimer=setTimeout(()=>flushRecognizedPhrase(false),p.silenceMs);
+}
+function refreshRecognitionTextarea(interim=''){
+    const stable=[committedSTTText,pendingClause].filter(Boolean).join(committedSTTText&&pendingClause?'\n':'');
+    inputText.value=[stable,(interim||'').trim()].filter(Boolean).join(stable&&interim?'\n':'');
+    requestAnimationFrame(()=>{ inputText.scrollTop=inputText.scrollHeight; });
+}
+function acceptFinalSpeech(text){
+    text=(text||'').trim(); if(!text) return;
+    pendingClause=joinSpeech(pendingClause,text);
+    refreshRecognitionTextarea(sttInterimText);
+    const p=getSpeechTimingProfile();
+    if(hasTerminalPunctuation(pendingClause) || pendingClause.length>=p.maxChars) flushRecognizedPhrase(true);
+    else scheduleSpeechFlush();
+}
+function flushRecognizedPhrase(force=false){
+    clearSTTSilenceTimer();
+    const text=(pendingClause||'').trim(); if(!text) return false;
+    const p=getSpeechTimingProfile();
+    // Very short fragments without punctuation stay buffered for the next speech burst.
+    if(!force && !hasTerminalPunctuation(text) && text.length<p.minChars) {
+        // Do not lose short phrases such as 'hello' or short Korean responses.
+        sttSilenceTimer=setTimeout(()=>flushRecognizedPhrase(true), Math.min(1200,p.silenceMs));
+        return false;
     }
-    return bestOffset>0 ? sampleRate/bestOffset : null;
-}
-
-async function startSpeakerMonitor() {
-    stopSpeakerMonitor();
-    if (document.getElementById('speakerBreakSelect')?.value === 'off') return;
-    try {
-        speakerAudioStream = await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true, noiseSuppression:true, autoGainControl:true}});
-        speakerAudioContext = new (window.AudioContext || window.webkitAudioContext)();
-        const source = speakerAudioContext.createMediaStreamSource(speakerAudioStream);
-        speakerAnalyser = speakerAudioContext.createAnalyser();
-        speakerAnalyser.fftSize = 2048;
-        source.connect(speakerAnalyser);
-        const buf = new Float32Array(speakerAnalyser.fftSize);
-        let samples=[];
-        speakerPitchTimer=setInterval(()=>{
-            if (!speakerAnalyser) return;
-            speakerAnalyser.getFloatTimeDomainData(buf);
-            const p=estimatePitch(buf, speakerAudioContext.sampleRate);
-            if (p && p>=70 && p<=350) samples.push(p);
-            if (samples.length>=5) {
-                const m=median(samples.splice(0));
-                if (lastPitchMedian && Math.abs(m-lastPitchMedian)/lastPitchMedian > 0.28) pendingSpeakerChange=true;
-                lastPitchMedian = lastPitchMedian ? lastPitchMedian*0.65 + m*0.35 : m;
-            }
-        },180);
-    } catch(e) { /* STT still works if pitch monitor is unavailable */ }
-}
-
-function stopSpeakerMonitor() {
-    if (speakerPitchTimer) clearInterval(speakerPitchTimer);
-    speakerPitchTimer=null; speakerAnalyser=null; lastPitchMedian=null; pendingSpeakerChange=false;
-    if (speakerAudioStream) speakerAudioStream.getTracks().forEach(t=>t.stop());
-    speakerAudioStream=null;
-    if (speakerAudioContext) { try{speakerAudioContext.close();}catch(e){} }
-    speakerAudioContext=null;
-}
-
-function appendCommittedSpeech(text, speakerChanged=false) {
-    text=(text||'').trim();
-    if (!text) return;
-    // If previous grammar is unfinished, keep the next recognized phrase connected even after a pause/voice change.
-    if (pendingClause && !isSentenceComplete(pendingClause)) {
-        pendingClause += ' ' + text;
-    } else {
-        if (speakerChanged && committedSTTText) {
-            currentSpeakerId++;
-            committedSTTText += '\n';
-        } else if (committedSTTText && isSentenceComplete(committedSTTText)) {
-            committedSTTText += '\n';
-        } else if (committedSTTText) {
-            committedSTTText += ' ';
-        }
-        pendingClause = text;
-    }
-    // Commit only completed sentences; unfinished grammar remains pending for the next result.
-    if (isSentenceComplete(pendingClause)) {
-        committedSTTText += pendingClause;
-        queueIncrementalTranslation(pendingClause, currentSpeakerId);
-        pendingClause='';
-    }
-    inputText.value = [committedSTTText, pendingClause].filter(Boolean).join(committedSTTText && pendingClause ? ' ' : '');
-    requestAnimationFrame(() => { inputText.scrollTop = inputText.scrollHeight; });
+    pendingClause=''; sttInterimText='';
+    if(committedSTTText) committedSTTText += '\n';
+    committedSTTText += text;
+    refreshRecognitionTextarea('');
+    queueIncrementalTranslation(text,currentSpeakerId);
+    return true;
 }
 
 function queueIncrementalTranslation(text, speakerId) {
+    text=(text||'').trim(); if(!text) return;
     const targetLang=document.getElementById('targetLangSelect').value;
     const sourceLang=(inputText.dataset.sourceLang||'en').split('-')[0];
     const item={id:++translationSeq,speakerId,text,result:'',targetLang,sourceLang,status:'pending'};
@@ -1050,7 +1003,7 @@ function queueIncrementalTranslation(text, speakerId) {
 function pumpTranslationQueue(){
     while(translationActive < TRANSLATION_CONCURRENCY && translationQueue.length){
         const item=translationQueue.shift();
-        translationActive++; item.status='translating';
+        translationActive++; item.status='translating'; renderIncrementalSegments();
         translateText(item.text,item.targetLang,item.sourceLang).then(result=>{
             item.result=result; item.status='done';
             lastRecognizedForPractice=item.text; lastTranslatedForPractice=result;
@@ -1068,18 +1021,17 @@ function setResultWindowSize(value){
     renderIncrementalSegments();
 }
 
-function escapeHtml(v='') { return String(v).replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c])); }
+function escapeHtml(v='') { return String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function renderIncrementalSegments() {
     if (!translatedSegments.length) { sentenceList.innerHTML=''; return; }
     const recent=translatedSegments.slice(-resultWindowSize);
     sentenceList.innerHTML=recent.map((x,i)=>{
       const globalIndex=translatedSegments.length-recent.length+i;
-      const body=x.status==='done'||x.status==='error' ? escapeHtml(x.result) : '<span class="translation-pending">⚡ 번역 중...</span>';
-      return `<div class="sentence-card"><div class="sentence-header"><div class="sentence-text">👤 화자 ${x.speakerId}: ${escapeHtml(x.text)}</div><button class="btn-icon" onclick="saveSegmentToVocab(${globalIndex})">➕ 단어장</button></div><div class="translation-block"><span>💬 <b>${x.targetLang.toUpperCase()}:</b> ${body}</span></div></div>`;
+      const body=x.status==='done'||x.status==='error' ? escapeHtml(x.result) : '<span class="translation-pending">⚡ Translating...</span>';
+      return `<div class="sentence-card"><div class="sentence-header"><div class="sentence-text">🎤 ${escapeHtml(x.text)}</div><button class="btn-icon" onclick="saveSegmentToVocab(${globalIndex})">➕ ${currentUILang==='ko'?'단어장':'Vocab'}</button></div><div class="translation-block"><span>💬 <b>${x.targetLang.toUpperCase()}:</b> ${body}</span></div></div>`;
     }).join('');
-    sentenceList.scrollTop=sentenceList.scrollHeight;
+    requestAnimationFrame(()=>{ sentenceList.scrollTop=sentenceList.scrollHeight; });
 }
-
 
 function saveSegmentToVocab(index){
     const x=translatedSegments[index]; if(!x) return;
@@ -1106,16 +1058,13 @@ async function practiceSpeak(kind) {
     else { text=(lastTranslatedForPractice||'').trim(); lang=document.getElementById('targetLangSelect').value; }
     if(!text) return;
     if(synth) synth.cancel();
-    for(let i=0;i<repeat;i++){
-        const u=new SpeechSynthesisUtterance(text); u.lang=localeFor(lang); u.rate=parseFloat(document.getElementById('rate')?.value||1); synth.speak(u);
-    }
+    for(let i=0;i<repeat;i++){ const u=new SpeechSynthesisUtterance(text); u.lang=localeFor(lang); u.rate=parseFloat(document.getElementById('rate')?.value||1); synth.speak(u); }
 }
 function setSTTVisual(active){
     const start=document.getElementById('btnSTTStart'), stop=document.getElementById('btnSTTStop');
     if(start) start.classList.toggle('listening',!!active);
     if(stop) stop.disabled=!active;
 }
-
 function startSelectedSTT(){ startSTT(document.getElementById('sourceLangSelect').value); }
 function syncLanguagePair(){
  const src=document.getElementById('sourceLangSelect'); const qt=document.getElementById('quickTargetLang'); const full=document.getElementById('targetLangSelect');
@@ -1123,55 +1072,52 @@ function syncLanguagePair(){
 }
 function startSTT(langCode) {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognition) { alert('현재 브라우저에서 마이크 음성 인식을 지원하지 않습니다.'); return; }
+    if (!SpeechRecognition) { alert(currentUILang==='ko'?'현재 브라우저에서 마이크 음성 인식을 지원하지 않습니다.':'Speech recognition is not supported by this browser.'); return; }
     stopSTT(true); sttManualStop=false; setSTTVisual(true);
-    currentSpeakerId=1; committedSTTText=inputText.value.trim(); pendingClause='';
-    // Keep one microphone path only; translation runs independently in parallel.
-    stopSpeakerMonitor();
-    const pauseSetting=document.getElementById('sttPauseSelect')?.value||'5';
-    const keepListening=pauseSetting!=='0';
+    currentSpeakerId=1; committedSTTText=inputText.value.trim(); pendingClause=''; sttInterimText=''; clearSTTSilenceTimer();
     const recognition=new SpeechRecognition(); activeRecognition=recognition;
     recognition.lang=langCode; recognition.continuous=true; recognition.interimResults=true; recognition.maxAlternatives=1;
     inputText.dataset.sourceLang=langCode;
-    let interim=''; let lastSpeechAt=Date.now();
-    ocrStatus.textContent=`🎙️ 계속 듣는 중... (${langCode})`;
-    recognition.onspeechstart=()=>{lastSpeechAt=Date.now();};
-    recognition.onspeechend=()=>{lastSpeechAt=Date.now();};
+    const mode=getSpeechTimingMode();
+    ocrStatus.textContent=`🎙️ Listening · ${mode==='fast'?'Fast':mode==='accuracy'?'Accuracy':'Real-time'} (${langCode})`;
     recognition.onresult=(event)=>{
-        interim='';
+        let interim='';
         for(let i=event.resultIndex;i<event.results.length;i++){
-            const t=event.results[i][0].transcript.trim();
-            if(event.results[i].isFinal){
-                const changed=pendingSpeakerChange; pendingSpeakerChange=false;
-                appendCommittedSpeech(t,changed);
-            } else interim += (interim?' ':'')+t;
+            const t=(event.results[i][0]?.transcript||'').trim();
+            if(!t) continue;
+            if(event.results[i].isFinal) {
+                const now=Date.now();
+                if(!(t===lastFinalChunk && now-lastFinalChunkAt<1500)) { lastFinalChunk=t; lastFinalChunkAt=now; acceptFinalSpeech(t); }
+            }
+            else interim=joinSpeech(interim,t);
         }
-        const stable=[committedSTTText,pendingClause].filter(Boolean).join(committedSTTText&&pendingClause?' ':'');
-        inputText.value=[stable,interim].filter(Boolean).join(stable&&interim?' ':'');
-        requestAnimationFrame(() => { inputText.scrollTop = inputText.scrollHeight; });
-        lastSpeechAt=Date.now();
+        sttInterimText=interim;
+        refreshRecognitionTextarea(interim);
+        if(interim) scheduleSpeechFlush();
     };
+    recognition.onspeechend=()=>scheduleSpeechFlush();
     recognition.onerror=(e)=>{
-        if(e.error==='not-allowed'||e.error==='service-not-allowed'){ocrStatus.textContent='❌ 마이크 권한이 필요합니다.';sttManualStop=true;stopSpeakerMonitor();}
-        else if(e.error!=='no-speech'&&e.error!=='aborted') ocrStatus.textContent=`⚠️ 음성 인식: ${e.error}`;
+        if(e.error==='not-allowed'||e.error==='service-not-allowed'){ocrStatus.textContent=currentUILang==='ko'?'❌ 마이크 권한이 필요합니다.':'❌ Microphone permission is required.';sttManualStop=true;setSTTVisual(false);}
+        else if(e.error==='audio-capture') ocrStatus.textContent=currentUILang==='ko'?'❌ 마이크를 사용할 수 없습니다.':'❌ Microphone unavailable.';
+        else if(e.error==='network') ocrStatus.textContent=currentUILang==='ko'?'❌ 음성 인식 네트워크 오류':'❌ Speech recognition network error';
+        else if(e.error!=='no-speech'&&e.error!=='aborted') ocrStatus.textContent=`⚠️ Speech recognition: ${e.error}`;
     };
     recognition.onend=()=>{
         if(activeRecognition!==recognition)return;
-        if(!sttManualStop&&keepListening){
+        if(!sttManualStop){
             sttRestartTimer=setTimeout(()=>{if(!sttManualStop&&activeRecognition===recognition){try{recognition.start();}catch(e){}}},300);
-        } else { ocrStatus.textContent='✅ 음성 입력 완료!'; stopSpeakerMonitor(); }
+        } else setSTTVisual(false);
     };
-    try{recognition.start();}catch(e){ocrStatus.textContent='❌ 음성 인식 시작 실패';stopSpeakerMonitor();}
+    try{recognition.start();}catch(e){ocrStatus.textContent=currentUILang==='ko'?'❌ 음성 인식 시작 실패':'❌ Speech recognition could not start';setSTTVisual(false);}
 }
 
 function stopSTT(silent=false) {
-    sttManualStop=true;
+    sttManualStop=true; clearSTTSilenceTimer();
     if(sttRestartTimer){clearTimeout(sttRestartTimer);sttRestartTimer=null;}
+    flushRecognizedPhrase(true);
     if(activeRecognition){try{activeRecognition.stop();}catch(e){} activeRecognition=null;}
-    stopSpeakerMonitor();
-    if(pendingClause && pendingClause.trim()) { committedSTTText += (committedSTTText?' ':'') + pendingClause.trim(); queueIncrementalTranslation(pendingClause.trim(),currentSpeakerId); pendingClause=''; inputText.value=committedSTTText; }
     setSTTVisual(false);
-    if(!silent)ocrStatus.textContent='⏹️ 음성 인식 정지';
+    if(!silent)ocrStatus.textContent=currentUILang==='ko'?'⏹️ 음성 인식 정지':'⏹️ Speech recognition stopped';
 }
 
 // ==========================================
@@ -1395,8 +1341,12 @@ window.addEventListener('DOMContentLoaded', () => {
         localStorage.setItem('trip_first_open_v211','1');
         setTimeout(() => { try { window.open('https://us.trip.com/?Allianceid=8796691&SID=320666228&trip_sub1=&trip_sub3=D18303749&linkhub_token=sl_zGQ0YJsVIV2&locale=en-us','_blank','noopener'); } catch(e) {} }, 500);
     }
+    const savedUI=localStorage.getItem('translator_ui_lang_v213') || 'en';
+    changeUILanguage(savedUI);
+    const savedTiming=localStorage.getItem('stt_timing_v213') || 'realtime';
+    saveSpeechTiming(savedTiming);
+    const resultSel=document.getElementById('resultSizeSelect'); if(resultSel){ resultSel.value=String(resultWindowSize); setResultWindowSize(resultWindowSize); }
     checkStoredModels();
-    changeUILanguage('ko');
 });
 </script>
 </body>

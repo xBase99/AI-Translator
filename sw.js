@@ -1,10 +1,9 @@
-const CACHE_NAME = 'translator-v2.11-practice-qr';
+const CACHE_NAME = 'translator-v2.13a-ai';
 
 const STATIC_ASSETS = [
     './',
     './index.html',
-    './manifest.json',
-    'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js'
+    './manifest.json'
 ];
 
 self.addEventListener('install', (event) => {
