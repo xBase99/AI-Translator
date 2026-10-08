@@ -1,6 +1,6 @@
 {
   "id": "./index.html",
-  "name": "AI Voice Translator (v2.13)",
+  "name": "AI Voice Translator (v2.13C)",
   "short_name": "AI번역",
   "description": "Pause-aware streaming speech recognition and translation PWA with English/Korean UI and browser-managed offline EN/KO/DE translation when supported.",
   "start_url": "./index.html",

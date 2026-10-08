@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>🗣️ AI Voice Translator PWA (v2.13A AI)</title>
+    <title>🗣️ AI Voice Translator PWA (v2.13C AI)</title>
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
@@ -201,6 +201,26 @@
           #sentenceList.result-size-15 { height:560px; min-height:560px; max-height:560px; overflow-y:auto; }
           .result-size-label span { display:none; }
         }
+
+        .practice-header-tools { display:flex; align-items:center; gap:.3rem; flex:0 0 auto; white-space:nowrap; }
+        .practice-stop { border:1px solid #fca5a5; background:#fff; color:#b91c1c; border-radius:7px; padding:.28rem .48rem; font-weight:800; cursor:pointer; }
+        .practice-stop:active { transform:translateY(1px); }
+        .practice-repeat-inline { width:auto; min-width:54px; padding:.28rem .36rem; font-size:.78rem; }
+        @media (max-width:520px) {
+            .mobile-header-bar { display:grid; grid-template-columns:1fr; gap:.45rem; }
+            .mobile-header-bar h1 { width:100%; }
+            .header-btn-group { width:100%; display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); gap:.2rem; min-width:0; }
+            .header-btn-group > * { min-width:0; width:100%; justify-content:center; padding:.36rem .18rem; overflow:hidden; text-overflow:ellipsis; }
+            .header-btn-group .btn-icon span { display:none; }
+            .header-btn-group .btn-trip { font-size:0; }
+            .header-btn-group .btn-trip::before { content:'✈️'; font-size:.82rem; }
+            .practice-header { gap:.3rem; }
+            .practice-header > label { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:.82rem; }
+            .practice-header-tools { gap:.22rem; }
+            .practice-toggle { padding:.28rem .4rem; font-size:.72rem; }
+            .practice-stop { padding:.28rem .4rem; font-size:.72rem; }
+            .practice-repeat-inline { min-width:50px; max-width:56px; font-size:.72rem; }
+        }
     </style>
 </head>
 <body>
@@ -260,14 +280,15 @@
     <div id="practiceControls" class="practice-controls collapsed">
         <div class="practice-header">
             <label id="uiPracticeTitle">🔁 다시 듣기 연습</label>
-            <button id="practiceToggle" class="practice-toggle" type="button" onclick="togglePracticePanel()" aria-expanded="false">펼치기 ▾</button>
-        </div>
-        <div class="practice-body">
-            <div style="display:flex;justify-content:flex-end;margin-top:.35rem;">
-                <select id="practiceRepeat" class="large-select" style="width:auto;padding:.35rem;">
+            <div class="practice-header-tools">
+                <select id="practiceRepeat" class="large-select practice-repeat-inline" aria-label="Repeat count">
                     <option value="1">1×</option><option value="3">3×</option><option value="5">5×</option>
                 </select>
+                <button id="btnStopPractice" class="practice-stop" type="button" onclick="stopPracticeSpeech()" title="Stop playback">⏹</button>
+                <button id="practiceToggle" class="practice-toggle" type="button" onclick="togglePracticePanel()" aria-expanded="false">▾</button>
             </div>
+        </div>
+        <div class="practice-body">
             <div class="practice-grid">
                 <button id="btnSpeakRecognized" class="btn-secondary btn-large" onclick="practiceSpeak('source')">🔊 <span id="uiSpeakRecognized">인식 문장 듣기</span></button>
                 <button id="btnSpeakTranslated" class="btn-primary btn-large" onclick="practiceSpeak('translation')">🔊 <span id="uiSpeakTranslated">번역 문장 듣기</span></button>
@@ -299,7 +320,7 @@
         </a>
     </div>
     <div class="copyright-bar">
-        © 2026 2.13 AI Voice Translation System. All rights reserved.
+        © 2026 2.13C AI Voice Translation System. All rights reserved.
     </div>
 </div>
 
@@ -925,6 +946,20 @@ let sttSilenceTimer = null;
 let sttInterimText = '';
 let lastFinalChunk = '';
 let lastFinalChunkAt = 0;
+let recentFinalChunks = [];
+
+function normalizeFinalText(text){
+    return String(text||'').toLowerCase().replace(/[\s\u00a0]+/g,' ').replace(/[.!?。！？…]+$/g,'').trim();
+}
+function isRecentDuplicateFinal(text){
+    const key=normalizeFinalText(text);
+    if(!key) return true;
+    const now=Date.now();
+    recentFinalChunks=recentFinalChunks.filter(x=>now-x.at<5000);
+    if(recentFinalChunks.some(x=>x.key===key)) return true;
+    recentFinalChunks.push({key,at:now});
+    return false;
+}
 
 const STT_TIMING_PROFILES = {
     fast:     { silenceMs: 800,  minChars: 3, maxChars: 80 },
@@ -1048,7 +1083,12 @@ function togglePracticePanel() {
     panel.classList.toggle('expanded',open);
     panel.classList.toggle('collapsed',!open);
     btn.setAttribute('aria-expanded',String(open));
-    btn.textContent=open ? (currentUILang==='ko'?'숨기기 ▴':'Hide ▴') : (currentUILang==='ko'?'펼치기 ▾':'Show ▾');
+    btn.textContent=open ? '▴' : '▾';
+    btn.title=open ? (currentUILang==='ko'?'듣기 연습 숨기기':'Hide Listening Practice') : (currentUILang==='ko'?'듣기 연습 펼치기':'Show Listening Practice');
+}
+
+function stopPracticeSpeech(){
+    if(synth){ synth.cancel(); }
 }
 
 async function practiceSpeak(kind) {
@@ -1074,7 +1114,7 @@ function startSTT(langCode) {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) { alert(currentUILang==='ko'?'현재 브라우저에서 마이크 음성 인식을 지원하지 않습니다.':'Speech recognition is not supported by this browser.'); return; }
     stopSTT(true); sttManualStop=false; setSTTVisual(true);
-    currentSpeakerId=1; committedSTTText=inputText.value.trim(); pendingClause=''; sttInterimText=''; clearSTTSilenceTimer();
+    currentSpeakerId=1; committedSTTText=inputText.value.trim(); pendingClause=''; sttInterimText=''; recentFinalChunks=[]; clearSTTSilenceTimer();
     const recognition=new SpeechRecognition(); activeRecognition=recognition;
     recognition.lang=langCode; recognition.continuous=true; recognition.interimResults=true; recognition.maxAlternatives=1;
     inputText.dataset.sourceLang=langCode;
@@ -1087,7 +1127,7 @@ function startSTT(langCode) {
             if(!t) continue;
             if(event.results[i].isFinal) {
                 const now=Date.now();
-                if(!(t===lastFinalChunk && now-lastFinalChunkAt<1500)) { lastFinalChunk=t; lastFinalChunkAt=now; acceptFinalSpeech(t); }
+                if(!isRecentDuplicateFinal(t)) { lastFinalChunk=t; lastFinalChunkAt=now; acceptFinalSpeech(t); }
             }
             else interim=joinSpeech(interim,t);
         }
