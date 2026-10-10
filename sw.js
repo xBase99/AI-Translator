@@ -1,68 +1,29 @@
-const CACHE_NAME = 'translator-v2.13E-ai';
+const CACHE_NAME = 'translator-v2.13f';
+const STATIC_ASSETS = ['./', './index.html', './manifest.json'];
 
-const STATIC_ASSETS = [
-    './',
-    './index.html',
-    './manifest.json'
-];
-
-self.addEventListener('install', (event) => {
-    self.skipWaiting();
-    event.waitUntil(
-        caches.open(CACHE_NAME).then((cache) => {
-            return cache.addAll(STATIC_ASSETS);
-        })
-    );
+self.addEventListener('install', event => {
+  self.skipWaiting();
+  event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(STATIC_ASSETS)));
 });
 
-self.addEventListener('activate', (event) => {
-    event.waitUntil(
-        caches.keys().then((cacheNames) => {
-            return Promise.all(
-                cacheNames.map((cache) => {
-                    if (cache !== CACHE_NAME) {
-                        return caches.delete(cache);
-                    }
-                })
-            );
-        }).then(() => self.clients.claim())
-    );
+self.addEventListener('activate', event => {
+  event.waitUntil(
+    caches.keys().then(keys => Promise.all(keys.map(key => key === CACHE_NAME ? null : caches.delete(key))))
+      .then(() => self.clients.claim())
+  );
 });
 
-self.addEventListener('fetch', (event) => {
-    const request = event.request;
-
-    if (request.method !== 'GET' || request.url.includes('translate.googleapis.com')) {
-        return;
-    }
-
-    if (request.mode === 'navigate' || request.headers.get('accept').includes('text/html')) {
-        event.respondWith(
-            fetch(request)
-                .then((networkResponse) => {
-                    return caches.open(CACHE_NAME).then((cache) => {
-                        cache.put(request, networkResponse.clone());
-                        return networkResponse;
-                    });
-                })
-                .catch(() => caches.match(request))
-        );
-        return;
-    }
-
-    event.respondWith(
-        caches.match(request).then((cachedResponse) => {
-            const fetchPromise = fetch(request).then((networkResponse) => {
-                if (networkResponse && networkResponse.status === 200) {
-                    const responseToCache = networkResponse.clone();
-                    caches.open(CACHE_NAME).then((cache) => {
-                        cache.put(request, responseToCache);
-                    });
-                }
-                return networkResponse;
-            }).catch(() => {});
-
-            return cachedResponse || fetchPromise;
-        })
-    );
+self.addEventListener('fetch', event => {
+  const request = event.request;
+  if (request.method !== 'GET' || request.url.includes('translate.googleapis.com')) return;
+  if (request.mode === 'navigate' || (request.headers.get('accept') || '').includes('text/html')) {
+    event.respondWith(fetch(request).then(response => {
+      const copy=response.clone(); caches.open(CACHE_NAME).then(cache=>cache.put(request,copy)); return response;
+    }).catch(()=>caches.match(request).then(r=>r||caches.match('./index.html'))));
+    return;
+  }
+  event.respondWith(caches.match(request).then(cached => cached || fetch(request).then(response => {
+    if(response && response.status===200){ const copy=response.clone(); caches.open(CACHE_NAME).then(cache=>cache.put(request,copy)); }
+    return response;
+  })));
 });

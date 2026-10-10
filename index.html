@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>🗣️ AI Voice Translator PWA (v2.13E AI)</title>
+    <title>🗣️ AI Voice Translator PWA (v2.13G AI)</title>
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
@@ -221,16 +221,31 @@
             .practice-stop { padding:.28rem .4rem; font-size:.72rem; }
             .practice-repeat-inline { min-width:50px; max-width:56px; font-size:.72rem; }
         }
+
+        .mode-banner { display:none !important; }
+        .mobile-header-bar h1 { display:flex; align-items:center; gap:.45rem; min-width:0; }
+        .mode-corner { margin-left:auto; flex:0 0 auto; padding:.18rem .42rem; border-radius:999px; font-size:.62rem; font-weight:900; border:1px solid var(--border); background:#eef2ff; color:#3730a3; }
+        body.dark-mode .mode-corner { background:#1e293b; color:#c7d2fe; border-color:#475569; }
+        .segment-editor { width:100%; min-height:44px; resize:vertical; border:1px solid var(--border); border-radius:7px; padding:.45rem .5rem; font:inherit; line-height:1.35; background:#fff; color:var(--text); }
+        .segment-editor.translation-editor { min-height:48px; }
+        body.dark-mode .segment-editor { background:#0f172a; color:#e2e8f0; border-color:#475569; }
+        .segment-actions { display:flex; gap:.25rem; flex-wrap:wrap; justify-content:flex-end; }
+        .translation-block { align-items:flex-start; }
+        .translation-content { flex:1; min-width:0; }
+        .translation-label { font-size:.76rem; color:var(--text-muted); margin-bottom:.2rem; font-weight:800; }
+        @media (max-width:480px){
+            .segment-actions .btn-icon { padding:.3rem .4rem; font-size:.7rem; }
+            .mode-corner { font-size:.58rem; padding:.15rem .35rem; }
+        }
     </style>
 </head>
 <body>
 
 <div class="container">
     <div class="mobile-header-bar">
-        <h1 id="uiTitle">🗣️ AI Voice Translator</h1>
+        <h1 id="uiTitle">🗣️ AI Voice Translator <span id="modeBadge" class="mode-corner">Mix Mode</span></h1>
         <div class="header-btn-group">
             <button id="btnOpenVocab" class="btn-icon btn-vocab">📖 <span id="uiBtnVocab">단어장</span></button>
-            <a href="https://www.trip.com/t/77sfZ47lEW2" target="_blank" class="btn-icon btn-trip">✈️ Trip</a>
             <button id="btnOpenModels" class="btn-icon">🤖 <span id="uiBtnModels">AI Models</span></button>
             <button id="btnShowQR" class="btn-icon" title="QR">▦ QR</button>
             <button id="btnTheme" class="btn-icon theme-toggle" title="Theme" onclick="toggleTheme()">🌙</button>
@@ -320,7 +335,7 @@
         </a>
     </div>
     <div class="copyright-bar">
-        © 2026 2.13E AI Voice Translation System. All rights reserved.
+        © 2026 2.13G AI Voice Translation System. All rights reserved.
     </div>
 </div>
 
@@ -389,7 +404,7 @@
 
             <div class="setting-item">
                 <label id="uiSettingModeLabel">🌐 Translation Mode:</label>
-                <select id="translationModeSelect" class="large-select">
+                <select id="translationModeSelect" class="large-select" onchange="updateOnlineStatus()">
                     <option value="auto" id="optModeAuto">Auto Mode (Offline First + Online Backup)</option>
                     <option value="online" id="optModeOnline">Online Mode (Google API)</option>
                     <option value="offline" id="optModeOffline">Offline Only Mode (Stored AI)</option>
@@ -407,6 +422,25 @@
                     <option value="zh">简体中文 (Chinese)</option>
                 </select>
             </div>
+            <div class="setting-item">
+                <label id="uiVoiceTypeLabel">🗣️ Voice Type:</label>
+                <select id="voiceTypeSelect" class="large-select" onchange="saveVoiceType(this.value)">
+                    <option value="auto" id="optVoiceAuto">Auto — Best matching voice</option>
+                    <option value="female" id="optVoiceFemale">Female-preferred</option>
+                    <option value="male" id="optVoiceMale">Male-preferred</option>
+                    <option value="alternate" id="optVoiceAlternate">Alternate voice</option>
+                </select>
+                <small id="uiVoiceTypeNote" class="timing-note">Available voices depend on the phone/computer and browser. Male/Female preference is best-effort when the system does not expose gender information.</small>
+            </div>
+            <div class="setting-item">
+                <label id="uiVoiceSpeedLabel">⏱️ Voice Speed:</label>
+                <select id="voiceSpeedSelect" class="large-select" onchange="saveVoiceSpeed(this.value)">
+                    <option value="0.85">Slow</option>
+                    <option value="1" selected>Normal</option>
+                    <option value="1.15">Fast</option>
+                </select>
+            </div>
+
             <div class="setting-item">
                 <label id="uiSettingAutoPlayLabel">🔊 Auto-Play Speech:</label>
                 <select id="autoPlaySelect" class="large-select">
@@ -563,7 +597,7 @@ const i18nDict = {
         uiBtnRecStart: '내 발음 녹음 시작',
         uiBtnRecStop: '녹음 정지',
         uiLabelResult: '번역 결과:',
-        uiSTTStop: '중단', uiPracticeTitle: '🔁 다시 듣기 연습', uiSpeakRecognized: '인식 문장 듣기', uiSpeakTranslated: '번역 문장 듣기', uiQRTitle: '▦ 현재 앱 주소 QR',
+        uiSTTStop: '중단', uiPracticeTitle: '🔁 다시 듣기 연습', uiSpeakRecognized: '표시 원문 전체 듣기', uiSpeakTranslated: '표시 번역 전체 듣기', uiQRTitle: '▦ 현재 앱 주소 QR',
         uiSettingsTitle: '⚙️ 환경 설정',
         uiSettingUILangLabel: '🗣️ UI 언어:',
         uiRecognitionModeLabel: '🎤 음성 인식 모드:',
@@ -578,6 +612,13 @@ const i18nDict = {
         uiSettingSplitLabel: '✂️ 글 분할 자르기 방식:',
         uiSettingModeLabel: '🌐 번역 모드 선택:',
         uiSettingTargetLabel: '🎯 번역 대상 언어 선택:',
+        uiVoiceTypeLabel: '🗣️ 음성 타입:',
+        optVoiceAuto: '자동 — 해당 언어에 가장 잘 맞는 음성',
+        optVoiceFemale: '여성 음성 우선',
+        optVoiceMale: '남성 음성 우선',
+        optVoiceAlternate: '다른 음성',
+        uiVoiceTypeNote: '사용 가능한 음성은 휴대폰/컴퓨터와 브라우저에 따라 다릅니다. 시스템이 성별 정보를 제공하지 않으면 남성/여성 선택은 가능한 범위에서 적용됩니다.',
+        uiVoiceSpeedLabel: '⏱️ 음성 속도:',
         uiSettingAutoPlayLabel: '🔊 자동 읽기 (Auto-Play):',
         uiBtnSaveSettings: '저장 및 닫기',
         uiModelsTitle: '🤖 오프라인 AI 모델 (영어·한국어·독일어)',
@@ -622,7 +663,7 @@ const i18nDict = {
         uiBtnRecStart: 'Record Voice',
         uiBtnRecStop: 'Stop Recording',
         uiLabelResult: 'Translation Result:',
-        uiSTTStop: 'Stop', uiPracticeTitle: '🔁 Listening Practice', uiSpeakRecognized: 'Recognized Sentence', uiSpeakTranslated: 'Translated Sentence', uiQRTitle: '▦ Current App URL QR',
+        uiSTTStop: 'Stop', uiPracticeTitle: '🔁 Listening Practice', uiSpeakRecognized: 'Read All Originals', uiSpeakTranslated: 'Read All Translations', uiQRTitle: '▦ Current App URL QR',
         uiSettingsTitle: '⚙️ Settings',
         uiSettingUILangLabel: '🗣️ UI Language:',
         uiRecognitionModeLabel: '🎤 Recognition Mode:',
@@ -637,6 +678,13 @@ const i18nDict = {
         uiSettingSplitLabel: '✂️ Text Splitting Method:',
         uiSettingModeLabel: '🌐 Translation Mode:',
         uiSettingTargetLabel: '🎯 Target Language:',
+        uiVoiceTypeLabel: '🗣️ Voice Type:',
+        optVoiceAuto: 'Auto — Best matching voice',
+        optVoiceFemale: 'Female-preferred',
+        optVoiceMale: 'Male-preferred',
+        optVoiceAlternate: 'Alternate voice',
+        uiVoiceTypeNote: 'Available voices depend on the phone/computer and browser. Male/Female preference is best-effort when the system does not expose gender information.',
+        uiVoiceSpeedLabel: '⏱️ Voice Speed:',
         uiSettingAutoPlayLabel: '🔊 Auto-Play Speech:',
         uiBtnSaveSettings: 'Save & Close',
         uiModelsTitle: '🤖 Offline AI Models (EN · KO · DE)',
@@ -672,6 +720,10 @@ function changeUILanguage(lang) {
                 inputText.placeholder = dict[key];
             } else if (key === 'uiNoticeDetail') {
                 el.innerHTML = dict[key];
+            } else if (key === 'uiTitle') {
+                const badge=document.getElementById('modeBadge');
+                if(el.firstChild && el.firstChild.nodeType===Node.TEXT_NODE) el.firstChild.nodeValue=dict[key]+' ';
+                else { el.textContent=dict[key]+' '; if(badge) el.appendChild(badge); }
             } else {
                 el.textContent = dict[key];
             }
@@ -697,18 +749,14 @@ const networkNotice = document.getElementById('networkNotice');
 const ocrStatus = document.getElementById('ocrStatus');
 
 function updateOnlineStatus() {
-    const dict = i18nDict[currentUILang] || i18nDict['en'];
-    if (navigator.onLine) {
-        networkNotice.style.background = '#eff6ff';
-        networkNotice.style.borderColor = '#bfdbfe';
-        networkNotice.style.color = '#1e40af';
-        networkNotice.innerHTML = dict.netOnline;
-    } else {
-        networkNotice.style.background = '#fef2f2';
-        networkNotice.style.borderColor = '#fca5a5';
-        networkNotice.style.color = '#991b1b';
-        networkNotice.innerHTML = dict.netOffline;
-    }
+    const badge=document.getElementById('modeBadge');
+    const mode=document.getElementById('translationModeSelect')?.value || 'auto';
+    let label;
+    if(!navigator.onLine || mode==='offline') label='Offline Mode';
+    else if(mode==='online') label='Online Mode';
+    else label='Mix Mode';
+    if(badge) badge.textContent=label;
+    if(networkNotice) networkNotice.style.display='none';
 }
 window.addEventListener('online', updateOnlineStatus);
 window.addEventListener('offline', updateOnlineStatus);
@@ -721,9 +769,9 @@ function persistLastRecognition(text, translation='') {
     localStorage.setItem('last_recognized_sentence_v211', JSON.stringify(data));
 }
 function getLastRecognition(){ try{return JSON.parse(localStorage.getItem('last_recognized_sentence_v211')||'null');}catch(e){return null;} }
-function addVocabDirect(word, meaning=''){
+function addVocabDirect(word, meaning='', sourceLang='', targetLang=''){
     word=(word||'').trim(); if(!word) return false;
-    savedVocab.push({id:Date.now(),word,meaning:(meaning||'').trim(),date:new Date().toLocaleDateString()});
+    savedVocab.push({id:Date.now(),word,meaning:(meaning||'').trim(),sourceLang:sourceLang||document.getElementById('sourceLangSelect')?.value||'en-US',targetLang:targetLang||document.getElementById('targetLangSelect')?.value||'en',date:new Date().toLocaleDateString()});
     localStorage.setItem('vocab_list_v2',JSON.stringify(savedVocab));
     return true;
 }
@@ -732,7 +780,7 @@ function saveLatestToVocab(){
     const word=(last?.text||lastRecognizedForPractice||'').trim();
     const meaning=(last?.translation||lastTranslatedForPractice||'').trim();
     if(!word){ alert(currentUILang==='ko'?'저장할 최근 인식 문장이 없습니다.':'There is no recent recognized sentence to save.'); return; }
-    if(addVocabDirect(word,meaning)){ renderVocabList(); alert(currentUILang==='ko'?'최근 문장을 단어장에 저장했습니다.':'Latest sentence saved to Vocabulary.'); }
+    if(addVocabDirect(word,meaning,last?.sourceLang,last?.targetLang)){ renderVocabList(); alert(currentUILang==='ko'?'최근 원문과 번역문을 단어장에 저장했습니다.':'Latest original and translation saved to Vocabulary.'); }
 }
 function vocabText(){
     return '=== '+(currentUILang==='ko'?'내 단어장':'My Vocabulary')+' ===\n\n'+savedVocab.map((x,i)=>`${i+1}. ${x.word}${x.meaning?' : '+x.meaning:''} (${x.date})`).join('\n');
@@ -773,29 +821,33 @@ function saveWordPrompt(defaultWord = '') {
     alert(`'${word}' 저장 완료!`);
 }
 
+function updateVocabItem(id, field, value){
+    const item=savedVocab.find(x=>x.id===id); if(!item) return;
+    if(field==='word'||field==='meaning') item[field]=String(value||'');
+    localStorage.setItem('vocab_list_v2',JSON.stringify(savedVocab));
+}
+function speakVocabItem(id, kind){
+    const item=savedVocab.find(x=>x.id===id); if(!item) return;
+    if(kind==='word') speakText(item.word,item.sourceLang||document.getElementById('sourceLangSelect')?.value||'en-US');
+    else speakText(item.meaning,item.targetLang||document.getElementById('targetLangSelect')?.value||'en');
+}
 function renderVocabList() {
     const listEl = document.getElementById('vocabList');
     if (savedVocab.length === 0) {
-        listEl.innerHTML = '<div style="text-align:center; padding:2rem; color:#64748b;">저장된 단어가 없습니다.</div>';
+        listEl.innerHTML = '<div style="text-align:center; padding:2rem; color:#64748b;">'+(currentUILang==='ko'?'저장된 단어가 없습니다.':'Vocabulary is empty.')+'</div>';
         return;
     }
-
-    let html = '';
-    savedVocab.forEach(item => {
-        html += `
-            <div class="vocab-item">
-                <div>
-                    <div class="vocab-word">${item.word}</div>
-                    <div class="vocab-meaning">${item.meaning} <small style="color:#94a3b8;">(${item.date})</small></div>
-                </div>
-                <div>
-                    <button class="btn-icon" onclick="speakText('${item.word.replace(/'/g, "\\'")}', 'en-US')">🔊</button>
-                    <button class="btn-icon" onclick="deleteVocab(${item.id})">🗑️</button>
-                </div>
-            </div>
-        `;
-    });
-    listEl.innerHTML = html;
+    listEl.innerHTML=savedVocab.map(item=>`<div class="vocab-item" style="display:block;">
+      <div class="translation-label">${currentUILang==='ko'?'원문':'Original'} <small>(${escapeHtml(item.date||'')})</small></div>
+      <textarea class="segment-editor" oninput="updateVocabItem(${item.id},'word',this.value)">${escapeHtml(item.word||'')}</textarea>
+      <div class="translation-label" style="margin-top:.35rem;">${currentUILang==='ko'?'번역/메모':'Translation / Note'}</div>
+      <textarea class="segment-editor translation-editor" oninput="updateVocabItem(${item.id},'meaning',this.value)">${escapeHtml(item.meaning||'')}</textarea>
+      <div class="segment-actions" style="margin-top:.35rem;">
+        <button class="btn-icon" onclick="speakVocabItem(${item.id},'word')">🔊 ${currentUILang==='ko'?'원문':'Original'}</button>
+        <button class="btn-icon" onclick="speakVocabItem(${item.id},'meaning')">🔊 ${currentUILang==='ko'?'번역':'Translation'}</button>
+        <button class="btn-icon" onclick="deleteVocab(${item.id})">🗑️</button>
+      </div>
+    </div>`).join('');
 }
 
 function deleteVocab(id) {
@@ -833,7 +885,7 @@ document.getElementById('btnCloseVocab').onclick = () => vocabModal.style.displa
 
 document.getElementById('btnOpenSettings').onclick = () => settingsModal.style.display = 'flex';
 document.getElementById('closeSettings').onclick = () => settingsModal.style.display = 'none';
-document.getElementById('btnSaveSettings').onclick = () => { saveSpeechTiming(document.getElementById('sttTimingSelect')?.value||'realtime'); changeUILanguage(document.getElementById('settingsUILangSelect')?.value||'en'); settingsModal.style.display = 'none'; if(!activeRecognition) renderTranslation(); };
+document.getElementById('btnSaveSettings').onclick = () => { saveSpeechTiming(document.getElementById('sttTimingSelect')?.value||'realtime'); changeUILanguage(document.getElementById('settingsUILangSelect')?.value||'en'); settingsModal.style.display = 'none'; updateOnlineStatus(); if(!activeRecognition) renderTranslation(); };
 
 document.getElementById('btnShowQR').onclick = () => { const url=location.href.split('#')[0]; document.getElementById('qrUrl').textContent=url; document.getElementById('qrImage').src='https://api.qrserver.com/v1/create-qr-code/?size=300x300&data='+encodeURIComponent(url); qrModal.style.display='flex'; };
 document.getElementById('closeQR').onclick = document.getElementById('btnCloseQR').onclick = () => qrModal.style.display='none';
@@ -913,24 +965,47 @@ function detectTextLanguage(text, fallback='en') {
 }
 
 function localeFor(lang) {
-    const base = (lang || 'en').split('-')[0].toLowerCase();
-    return LANG_LOCALES[base] || lang || 'en-US';
+    const raw=String(lang||'en').trim();
+    const base=raw.split('-')[0].toLowerCase();
+    const exactMap={en:'en-US',ko:'ko-KR',ja:'ja-JP',de:'de-DE',fr:'fr-FR',es:'es-ES',zh:'zh-CN'};
+    return exactMap[base] || raw || 'en-US';
+}
+
+function saveVoiceType(value){ localStorage.setItem('tts_voice_type_v213g', value || 'auto'); }
+function saveVoiceSpeed(value){ localStorage.setItem('tts_voice_speed_v213g', String(value || '1')); }
+function getVoiceSpeed(){ return parseFloat(document.getElementById('voiceSpeedSelect')?.value || localStorage.getItem('tts_voice_speed_v213g') || '1'); }
+function voiceGenderHint(v){
+    const n=(String(v?.name||'')+' '+String(v?.voiceURI||'')).toLowerCase();
+    const female=['female','woman','samantha','victoria','karen','moira','tessa','ava','zira','susan','heami','yuna','kyoko','anna','petra'];
+    const male=['male','man','daniel','alex','fred','tom','david','mark','george','ichiro','hans'];
+    if(female.some(x=>n.includes(x))) return 'female';
+    if(male.some(x=>n.includes(x))) return 'male';
+    return '';
+}
+function chooseVoiceForLocale(locale){
+    const voices=synth?.getVoices?.() || [];
+    const wanted=String(locale||'en-US').toLowerCase();
+    const base=wanted.split('-')[0];
+    const matches=voices.filter(v=>String(v.lang).toLowerCase()===wanted);
+    const pool=matches.length ? matches : voices.filter(v=>String(v.lang).toLowerCase().startsWith(base+'-'));
+    if(!pool.length) return null;
+    const type=document.getElementById('voiceTypeSelect')?.value || localStorage.getItem('tts_voice_type_v213g') || 'auto';
+    if(type==='alternate') return pool[1] || pool[0];
+    if(type==='female' || type==='male') return pool.find(v=>voiceGenderHint(v)===type) || pool[0];
+    return pool.find(v=>v.default) || pool[0];
 }
 
 function speakText(customText = null, lang = 'en-US') {
     if (!synth) return;
     synth.cancel();
-    const textToSpeak = customText || inputText.value.trim();
+    const textToSpeak = String(customText ?? inputText.value ?? '').trim();
     if (!textToSpeak) return;
     const locale = localeFor(lang);
     const utterance = new SpeechSynthesisUtterance(textToSpeak);
-    utterance.rate = parseFloat(document.getElementById('rate')?.value || '1');
+    utterance.rate = getVoiceSpeed();
     utterance.lang = locale;
-    const voices = synth.getVoices();
-    const base = locale.split('-')[0].toLowerCase();
-    const exact = voices.find(v => v.lang.toLowerCase() === locale.toLowerCase());
-    const sameLang = voices.find(v => v.lang.toLowerCase().startsWith(base + '-'));
-    if (exact || sameLang) utterance.voice = exact || sameLang;
+    const voice=chooseVoiceForLocale(locale);
+    if(voice) utterance.voice=voice;
     synth.speak(utterance);
 }
 
@@ -1159,20 +1234,55 @@ function setResultWindowSize(value){
 }
 
 function escapeHtml(v='') { return String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function escapeAttr(v=''){ return escapeHtml(v).replace(/`/g,'&#96;'); }
+function visibleSegments(){ return translatedSegments.slice(-resultWindowSize); }
+function updateSegmentField(index, field, value){
+    const x=translatedSegments[index]; if(!x || !['text','result'].includes(field)) return;
+    x[field]=String(value||'');
+    if(field==='text') lastRecognizedForPractice=x.text;
+    if(field==='result') lastTranslatedForPractice=x.result;
+    persistLastRecognition(x.text,x.result);
+}
+function speakSegment(index, kind){
+    const x=translatedSegments[index]; if(!x) return;
+    if(kind==='source') speakText(x.text, x.sourceLang || document.getElementById('sourceLangSelect').value);
+    else speakText(x.result, x.targetLang || document.getElementById('targetLangSelect').value);
+}
+function savePairToVocab(word, meaning, sourceLang='', targetLang=''){
+    if(addVocabDirect(word,meaning,sourceLang,targetLang)){ renderVocabList(); alert(currentUILang==='ko'?'원문과 번역문을 단어장에 저장했습니다.':'Original and translation saved to Vocabulary.'); }
+}
 function renderIncrementalSegments() {
     if (!translatedSegments.length) { sentenceList.innerHTML=''; return; }
-    const recent=translatedSegments.slice(-resultWindowSize);
+    const recent=visibleSegments();
     sentenceList.innerHTML=recent.map((x,i)=>{
       const globalIndex=translatedSegments.length-recent.length+i;
-      const body=x.status==='done'||x.status==='error' ? escapeHtml(x.result) : '<span class="translation-pending">⚡ Translating...</span>';
-      return `<div class="sentence-card"><div class="sentence-header"><div class="sentence-text">🎤 ${escapeHtml(x.text)}</div><button class="btn-icon" onclick="saveSegmentToVocab(${globalIndex})">➕ ${currentUILang==='ko'?'단어장':'Vocab'}</button></div><div class="translation-block"><span>💬 <b>${x.targetLang.toUpperCase()}:</b> ${body}</span></div></div>`;
+      const pending=!(x.status==='done'||x.status==='error');
+      const resultValue=pending ? '' : (x.result||'');
+      const sourceLabel=currentUILang==='ko'?'원문':'Original';
+      const transLabel=currentUILang==='ko'?'번역':'Translation';
+      const saveLabel=currentUILang==='ko'?'둘 다 저장':'Save Both';
+      return `<div class="sentence-card">
+        <div class="translation-label">🎤 ${sourceLabel}</div>
+        <textarea class="segment-editor" oninput="updateSegmentField(${globalIndex},'text',this.value)">${escapeHtml(x.text)}</textarea>
+        <div class="segment-actions" style="margin-top:.3rem;">
+          <button class="btn-icon" onclick="speakSegment(${globalIndex},'source')">🔊 ${currentUILang==='ko'?'원문 읽기':'Read Original'}</button>
+          <button class="btn-icon" onclick="saveSegmentToVocab(${globalIndex})">➕ ${saveLabel}</button>
+        </div>
+        <div class="translation-block">
+          <div class="translation-content">
+            <div class="translation-label">💬 ${transLabel} · ${(x.targetLang||'').toUpperCase()}</div>
+            ${pending ? '<div class="translation-pending">⚡ Translating...</div>' : `<textarea class="segment-editor translation-editor" oninput="updateSegmentField(${globalIndex},'result',this.value)">${escapeHtml(resultValue)}</textarea>`}
+          </div>
+          ${pending?'':`<button class="btn-icon" onclick="speakSegment(${globalIndex},'translation')">🔊 ${currentUILang==='ko'?'번역 읽기':'Read Translation'}</button>`}
+        </div>
+      </div>`;
     }).join('');
     requestAnimationFrame(()=>{ sentenceList.scrollTop=sentenceList.scrollHeight; });
 }
 
 function saveSegmentToVocab(index){
     const x=translatedSegments[index]; if(!x) return;
-    if(addVocabDirect(x.text,x.result)){ renderVocabList(); alert(currentUILang==='ko'?'단어장에 저장했습니다.':'Saved to Vocabulary.'); }
+    savePairToVocab(x.text,x.result,x.sourceLang,x.targetLang);
 }
 
 let lastRecognizedForPractice = '';
@@ -1195,12 +1305,24 @@ function stopPracticeSpeech(){
 
 async function practiceSpeak(kind) {
     const repeat=Math.max(1,Number(document.getElementById('practiceRepeat')?.value||1));
-    let text, lang;
-    if(kind==='source'){ text=(lastRecognizedForPractice||inputText.value).trim(); lang=inputText.dataset.sourceLang||document.getElementById('sourceLangSelect').value; }
-    else { text=(lastTranslatedForPractice||'').trim(); lang=document.getElementById('targetLangSelect').value; }
+    const segs=visibleSegments().filter(x=>x && (kind==='source' ? x.text : x.result));
+    let text='', lang='';
+    if(segs.length){
+        text=segs.map(x=>kind==='source'?x.text:x.result).filter(Boolean).join('\n');
+        lang=kind==='source' ? (segs[0].sourceLang||document.getElementById('sourceLangSelect').value) : (segs[0].targetLang||document.getElementById('targetLangSelect').value);
+    } else if(kind==='source') {
+        text=inputText.value.trim(); lang=inputText.dataset.sourceLang||document.getElementById('sourceLangSelect').value;
+    } else {
+        text=(lastTranslatedForPractice||'').trim(); lang=document.getElementById('targetLangSelect').value;
+    }
     if(!text) return;
     if(synth) synth.cancel();
-    for(let i=0;i<repeat;i++){ const u=new SpeechSynthesisUtterance(text); u.lang=localeFor(lang); u.rate=parseFloat(document.getElementById('rate')?.value||1); synth.speak(u); }
+    for(let i=0;i<repeat;i++){
+        const u=new SpeechSynthesisUtterance(text);
+        const locale=localeFor(lang); u.lang=locale; u.rate=getVoiceSpeed();
+        const voice=chooseVoiceForLocale(locale); if(voice) u.voice=voice;
+        synth.speak(u);
+    }
 }
 function setSTTVisual(active){
     const start=document.getElementById('btnSTTStart'), stop=document.getElementById('btnSTTStop');
@@ -1460,13 +1582,13 @@ async function renderTranslation() {
                 <div class="sentence-header">
                     <div class="sentence-text">${block}</div>
                     <div style="display:flex; gap:0.2rem;">
-                        <button class="btn-icon" onclick="speakText('${safeBlock}', inputText.dataset.sourceLang || detectTextLanguage('${safeBlock}', 'en'))" title="원문 발음">🔊 원문</button>
-                        <button class="btn-icon" onclick="saveWordPrompt('${safeBlock}')" title="단어 저장">💾 저장</button>
+                        <button class="btn-icon" onclick="speakText('${safeBlock}', document.getElementById('sourceLangSelect').value)" title="원문 발음">🔊 원문</button>
+                        <button class="btn-icon" onclick="savePairToVocab('${safeBlock}','${safeResult}')" title="원문+번역 저장">➕ 둘 다 저장</button>
                     </div>
                 </div>
                 <div class="translation-block">
                     <span>💬 <b>Result (${targetLang.toUpperCase()}):</b> ${result}</span>
-                    <button class="btn-icon" onclick="speakText('${safeResult}', localeFor('${targetLang}'))" title="번역 발음">🔊 번역문</button>
+                    <button class="btn-icon" onclick="speakText('${safeResult}', '${targetLang}')" title="번역 발음">🔊 번역문</button>
                 </div>
             </div>
         `;
@@ -1477,7 +1599,7 @@ async function renderTranslation() {
     if (document.getElementById('autoPlaySelect').value === 'true' && textBlocks.length > 0) {
         const firstResult = await translateText(textBlocks[0], targetLang);
         if (firstResult && !firstResult.includes('[⚠️')) {
-            speakText(firstResult, localeFor(targetLang));
+            speakText(firstResult, targetLang);
         }
     }
 }
@@ -1497,6 +1619,8 @@ window.addEventListener('DOMContentLoaded', () => {
     const savedTiming=localStorage.getItem('stt_timing_v213') || 'realtime';
     saveSpeechTiming(savedTiming);
     saveSTTSessionMode(localStorage.getItem('stt_session_mode_v213e') || 'stable');
+    const voiceType=document.getElementById('voiceTypeSelect'); if(voiceType){ voiceType.value=localStorage.getItem('tts_voice_type_v213g') || 'auto'; }
+    const voiceSpeed=document.getElementById('voiceSpeedSelect'); if(voiceSpeed){ voiceSpeed.value=localStorage.getItem('tts_voice_speed_v213g') || '1'; }
     const resultSel=document.getElementById('resultSizeSelect'); if(resultSel){ resultSel.value=String(resultWindowSize); setResultWindowSize(resultWindowSize); }
     checkStoredModels();
 });
