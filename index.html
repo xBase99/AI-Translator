@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>🗣️ AI Voice Translator PWA (v2.13G AI)</title>
+    <title>🗣️ AI Voice Translator PWA (v2.131H AI)</title>
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
@@ -31,8 +31,8 @@
             --record-bg: #dc2626;
         }
 
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Noto Sans KR', 'Noto Sans JP', 'Noto Sans', sans-serif; }
-        html, body { width: 100%; height: 100%; background-color: var(--bg); color: var(--text); }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Noto Sans KR', 'Noto Sans JP', 'Noto Sans', sans-serif; -webkit-tap-highlight-color: transparent; }
+        html, body { width: 100%; height: 100%; background-color: var(--bg); color: var(--text); overflow-x: hidden; }
         body { display: flex; justify-content: center; align-items: flex-start; }
 
         .container {
@@ -237,6 +237,17 @@
             .segment-actions .btn-icon { padding:.3rem .4rem; font-size:.7rem; }
             .mode-corner { font-size:.58rem; padding:.15rem .35rem; }
         }
+
+        /* v2.131H: keep every header/action button tappable on narrow phones */
+        @media (max-width:360px){
+            .header-btn-group { grid-template-columns:repeat(5,minmax(0,1fr)); gap:.14rem; }
+            .header-btn-group > * { padding:.34rem .08rem; font-size:.68rem; }
+            .practice-header { align-items:flex-start; }
+            .practice-header-tools { gap:.14rem; }
+            .practice-repeat-inline { min-width:46px; max-width:50px; }
+            .segment-actions { display:grid; grid-template-columns:1fr 1fr; width:100%; }
+            .segment-actions .btn-icon { width:100%; justify-content:center; }
+        }
     </style>
 </head>
 <body>
@@ -259,8 +270,11 @@
     <div class="input-group">
         <div class="label-row">
             <label for="inputText" id="uiLabelInput">Input Text:</label>
-            <div>
-                
+            <div style="display:flex;gap:.25rem;align-items:center;">
+                <select id="clearModeSelect" class="ui-lang-select" title="Clear options" aria-label="Clear options">
+                    <option value="session">Current text/results</option>
+                    <option value="all">All saved app data</option>
+                </select>
                 <button id="btnClear" class="btn-secondary" style="padding:0.2rem 0.5rem; font-size:0.8rem;">🗑️ <span id="uiBtnClear">Clear</span></button>
             </div>
         </div>
@@ -287,7 +301,7 @@
         
         <!-- 저장 및 버퍼 삭제 버튼 영역 (그리드) -->
         <div id="recActionGroup" style="display:none; grid-template-columns: 2fr 1fr; gap:0.4rem; margin-top:0.4rem;">
-            <button id="btnSaveAudio" class="btn-primary" style="padding:0.55rem 0.3rem; font-size:0.82rem; font-weight:700;" onclick="downloadRecordedAudio()">💾 음성 파일 저장 (.mp3)</button>
+            <button id="btnSaveAudio" class="btn-primary" style="padding:0.55rem 0.3rem; font-size:0.82rem; font-weight:700;" onclick="downloadRecordedAudio()">💾 음성 파일 저장</button>
             <button id="btnClearAudio" class="btn-secondary" style="padding:0.55rem 0.3rem; font-size:0.82rem; font-weight:700; color:#dc2626; border-color:#fca5a5;" onclick="clearRecordedAudio()">🗑️ 음성 삭제</button>
         </div>
     </div>
@@ -335,7 +349,7 @@
         </a>
     </div>
     <div class="copyright-bar">
-        © 2026 2.13G AI Voice Translation System. All rights reserved.
+        © 2026 2.131H AI Voice Translation System. All rights reserved.
     </div>
 </div>
 
@@ -589,6 +603,7 @@ const i18nDict = {
         optModeOnline: '온라인 모드 (Google API)',
         optModeOffline: '오프라인 전용 모드 (브라우저 온디바이스 AI)',
         uiBtnClear: '지우기',
+        clearSession: '현재 문장/번역', clearAll: '전체 앱 데이터',
         uiBtnPhoto: '📷 사진 속 글자 읽기 (카메라/갤러리)',
         uiBtnPlay: '전체 읽기',
         uiBtnPause: '일시정지',
@@ -655,6 +670,7 @@ const i18nDict = {
         optModeOnline: 'Online Mode (Google API)',
         optModeOffline: 'Offline Only Mode (Browser On-device AI)',
         uiBtnClear: 'Clear',
+        clearSession: 'Current text/results', clearAll: 'All saved app data',
         uiBtnPhoto: '📷 Read Text in Photo (Camera/Gallery)',
         uiBtnPlay: 'Play All',
         uiBtnPause: 'Pause',
@@ -732,6 +748,12 @@ function changeUILanguage(lang) {
 
     document.querySelectorAll('.uiSizeLabel').forEach(el => el.textContent = dict.uiSizeLabel);
     document.querySelectorAll('.uiStatusLabel').forEach(el => el.textContent = dict.uiStatusLabel);
+    const clearSel=document.getElementById('clearModeSelect');
+    if(clearSel){
+        const a=clearSel.querySelector('option[value="session"]'), b=clearSel.querySelector('option[value="all"]');
+        if(a) a.textContent=dict.clearSession || (lang==='ko'?'현재 문장/번역':'Current text/results');
+        if(b) b.textContent=dict.clearAll || (lang==='ko'?'전체 앱 데이터':'All saved app data');
+    }
     updateModelUIState();
     updateOnlineStatus();
     const p=document.getElementById('practiceControls'), t=document.getElementById('practiceToggle');
@@ -751,6 +773,7 @@ const ocrStatus = document.getElementById('ocrStatus');
 function updateOnlineStatus() {
     const badge=document.getElementById('modeBadge');
     const mode=document.getElementById('translationModeSelect')?.value || 'auto';
+    localStorage.setItem('translation_mode_v2131h', mode);
     let label;
     if(!navigator.onLine || mode==='offline') label='Offline Mode';
     else if(mode==='online') label='Online Mode';
@@ -761,18 +784,27 @@ function updateOnlineStatus() {
 window.addEventListener('online', updateOnlineStatus);
 window.addEventListener('offline', updateOnlineStatus);
 
+// v2.131H persistent session helpers
+function safeJSONParse(raw, fallback){ try { return JSON.parse(raw); } catch(e) { return fallback; } }
+function persistSessionState(){
+    try {
+        localStorage.setItem('input_text_backup_v2131h', inputText.value || '');
+        localStorage.setItem('translated_segments_v2131h', JSON.stringify(translatedSegments || []));
+    } catch(e) {}
+}
+
 // 단어장 시스템
 
 function persistLastRecognition(text, translation='') {
     if (!text) return;
     const data={text,translation,sourceLang:inputText.dataset.sourceLang||document.getElementById('sourceLangSelect').value,targetLang:document.getElementById('targetLangSelect').value,at:Date.now()};
-    localStorage.setItem('last_recognized_sentence_v211', JSON.stringify(data));
+    localStorage.setItem('last_recognized_sentence_v2131h', JSON.stringify(data));
 }
-function getLastRecognition(){ try{return JSON.parse(localStorage.getItem('last_recognized_sentence_v211')||'null');}catch(e){return null;} }
+function getLastRecognition(){ try{return JSON.parse(localStorage.getItem('last_recognized_sentence_v2131h')||localStorage.getItem('last_recognized_sentence_v211')||'null');}catch(e){return null;} }
 function addVocabDirect(word, meaning='', sourceLang='', targetLang=''){
     word=(word||'').trim(); if(!word) return false;
     savedVocab.push({id:Date.now(),word,meaning:(meaning||'').trim(),sourceLang:sourceLang||document.getElementById('sourceLangSelect')?.value||'en-US',targetLang:targetLang||document.getElementById('targetLangSelect')?.value||'en',date:new Date().toLocaleDateString()});
-    localStorage.setItem('vocab_list_v2',JSON.stringify(savedVocab));
+    localStorage.setItem('vocab_list_v2131h',JSON.stringify(savedVocab));
     return true;
 }
 function saveLatestToVocab(){
@@ -801,7 +833,7 @@ function applyTheme(theme){
 }
 function toggleTheme(){ applyTheme(document.body.classList.contains('dark-mode')?'light':'dark'); }
 
-let savedVocab = JSON.parse(localStorage.getItem('vocab_list_v2') || '[]');
+let savedVocab = safeJSONParse(localStorage.getItem('vocab_list_v2131h') || localStorage.getItem('vocab_list_v2') || '[]', []);
 
 function saveWordPrompt(defaultWord = '') {
     const selectedText = window.getSelection().toString().trim() || defaultWord;
@@ -817,14 +849,14 @@ function saveWordPrompt(defaultWord = '') {
         date: new Date().toLocaleDateString()
     });
 
-    localStorage.setItem('vocab_list_v2', JSON.stringify(savedVocab));
+    localStorage.setItem('vocab_list_v2131h', JSON.stringify(savedVocab));
     alert(`'${word}' 저장 완료!`);
 }
 
 function updateVocabItem(id, field, value){
     const item=savedVocab.find(x=>x.id===id); if(!item) return;
     if(field==='word'||field==='meaning') item[field]=String(value||'');
-    localStorage.setItem('vocab_list_v2',JSON.stringify(savedVocab));
+    localStorage.setItem('vocab_list_v2131h',JSON.stringify(savedVocab));
 }
 function speakVocabItem(id, kind){
     const item=savedVocab.find(x=>x.id===id); if(!item) return;
@@ -852,7 +884,7 @@ function renderVocabList() {
 
 function deleteVocab(id) {
     savedVocab = savedVocab.filter(item => item.id !== id);
-    localStorage.setItem('vocab_list_v2', JSON.stringify(savedVocab));
+    localStorage.setItem('vocab_list_v2131h', JSON.stringify(savedVocab));
     renderVocabList();
 }
 
@@ -885,7 +917,7 @@ document.getElementById('btnCloseVocab').onclick = () => vocabModal.style.displa
 
 document.getElementById('btnOpenSettings').onclick = () => settingsModal.style.display = 'flex';
 document.getElementById('closeSettings').onclick = () => settingsModal.style.display = 'none';
-document.getElementById('btnSaveSettings').onclick = () => { saveSpeechTiming(document.getElementById('sttTimingSelect')?.value||'realtime'); changeUILanguage(document.getElementById('settingsUILangSelect')?.value||'en'); settingsModal.style.display = 'none'; updateOnlineStatus(); if(!activeRecognition) renderTranslation(); };
+document.getElementById('btnSaveSettings').onclick = () => { saveSpeechTiming(document.getElementById('sttTimingSelect')?.value||'realtime'); saveSTTSessionMode(document.getElementById('sttSessionModeSelect')?.value||'stable'); changeUILanguage(document.getElementById('settingsUILangSelect')?.value||'en'); settingsModal.style.display = 'none'; updateOnlineStatus(); if(!activeRecognition) renderTranslation(); };
 
 document.getElementById('btnShowQR').onclick = () => { const url=location.href.split('#')[0]; document.getElementById('qrUrl').textContent=url; document.getElementById('qrImage').src='https://api.qrserver.com/v1/create-qr-code/?size=300x300&data='+encodeURIComponent(url); qrModal.style.display='flex'; };
 document.getElementById('closeQR').onclick = document.getElementById('btnCloseQR').onclick = () => qrModal.style.display='none';
@@ -1028,8 +1060,8 @@ function stopSpeech() { if (synth) synth.cancel(); }
 let currentSpeakerId = 1;
 let committedSTTText = '';
 let pendingClause = '';
-let translatedSegments = [];
-let translationSeq = 0;
+let translatedSegments = safeJSONParse(localStorage.getItem('translated_segments_v2131h') || '[]', []);
+let translationSeq = translatedSegments.reduce((m,x)=>Math.max(m,Number(x?.id)||0),0);
 let translationGeneration = 0;
 let translationActive = 0;
 const TRANSLATION_CONCURRENCY = 3;
@@ -1175,6 +1207,7 @@ function queueIncrementalTranslation(text, speakerId) {
     persistLastRecognition(text,lastTranslatedForPractice||'');
     translationQueue.push(item);
     renderIncrementalSegments();
+    persistSessionState();
     pumpTranslationQueue();
 }
 
@@ -1192,7 +1225,7 @@ function pumpTranslationQueue(){
             persistLastRecognition(item.text,result);
         }).catch(()=>{
             if(item.generation===translationGeneration){ item.result='[Translation Failed]'; item.status='error'; }
-        }).finally(()=>{ translationActive=Math.max(0,translationActive-1); renderIncrementalSegments(); pumpTranslationQueue(); });
+        }).finally(()=>{ translationActive=Math.max(0,translationActive-1); renderIncrementalSegments(); persistSessionState(); pumpTranslationQueue(); });
     }
 }
 
@@ -1213,6 +1246,7 @@ function retranslateExistingSegments(targetLang){
     }
     lastTranslatedForPractice='';
     renderIncrementalSegments();
+    persistSessionState();
     pumpTranslationQueue();
 }
 
@@ -1242,6 +1276,7 @@ function updateSegmentField(index, field, value){
     if(field==='text') lastRecognizedForPractice=x.text;
     if(field==='result') lastTranslatedForPractice=x.result;
     persistLastRecognition(x.text,x.result);
+    persistSessionState();
 }
 function speakSegment(index, kind){
     const x=translatedSegments[index]; if(!x) return;
@@ -1399,12 +1434,18 @@ function stopSTT(silent=false) {
 async function startRecording() {
     try {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        mediaRecorder = new MediaRecorder(stream);
+        const candidates=['audio/webm;codecs=opus','audio/webm','audio/ogg;codecs=opus','audio/mp4'];
+        const mime=candidates.find(t=>window.MediaRecorder?.isTypeSupported?.(t)) || '';
+        mediaRecorder = mime ? new MediaRecorder(stream,{mimeType:mime}) : new MediaRecorder(stream);
+        mediaRecorder._sourceStream=stream;
         audioChunks = [];
 
-        mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+        mediaRecorder.ondataavailable = e => { if(e.data && e.data.size) audioChunks.push(e.data); };
         mediaRecorder.onstop = () => {
-            lastRecordedBlob = new Blob(audioChunks, { type: 'audio/mp3' });
+            const actualType=mediaRecorder.mimeType || mime || audioChunks[0]?.type || 'audio/webm';
+            lastRecordedBlob = new Blob(audioChunks, { type: actualType });
+            lastRecordedBlob._downloadExt = actualType.includes('mp4') ? 'm4a' : actualType.includes('ogg') ? 'ogg' : 'webm';
+            try { mediaRecorder._sourceStream?.getTracks().forEach(t=>t.stop()); } catch(e) {}
             const audio = document.getElementById('audioPlayback');
             audio.src = URL.createObjectURL(lastRecordedBlob);
             audio.style.display = 'block';
@@ -1465,7 +1506,8 @@ function downloadRecordedAudio() {
     const mm = String(now.getMinutes()).padStart(2, '0');
     const ss = String(now.getSeconds()).padStart(2, '0');
     
-    const fileName = `Voice_${YYYY}${MM}${DD}_${hh}${mm}${ss}.mp3`;
+    const ext = lastRecordedBlob._downloadExt || (lastRecordedBlob.type.includes('mp4')?'m4a':lastRecordedBlob.type.includes('ogg')?'ogg':'webm');
+    const fileName = `Voice_${YYYY}${MM}${DD}_${hh}${mm}${ss}.${ext}`;
 
     const a = document.createElement('a');
     a.href = URL.createObjectURL(lastRecordedBlob);
@@ -1558,54 +1600,58 @@ async function translateText(text, targetLang, explicitSourceLang = null) {
 async function renderTranslation() {
     const rawText = inputText.value.trim();
     if (!rawText) {
-        sentenceList.innerHTML = '';
+        if(!activeRecognition){ translatedSegments=[]; sentenceList.innerHTML=''; persistSessionState(); }
         return;
     }
+    if(activeRecognition) return;
 
     const splitMode = document.getElementById('splitModeSelect').value;
     const targetLang = document.getElementById('targetLangSelect').value;
-    
-    let textBlocks = splitMode === 'paragraph' 
-        ? rawText.split(/\n+/).map(p => p.trim()).filter(p => p.length > 0)
-        : rawText.split(/(?<=[.!?])\s+/).map(s => s.trim()).filter(s => s.length > 0);
+    const sourceLang = (inputText.dataset.sourceLang || document.getElementById('sourceLangSelect').value || 'en').split('-')[0];
+    const textBlocks = splitMode === 'paragraph'
+        ? rawText.split(/\n+/).map(p=>p.trim()).filter(Boolean)
+        : rawText.split(/(?<=[.!?。！？])\s+|\n+/).map(p=>p.trim()).filter(Boolean);
 
-    sentenceList.innerHTML = '<div style="text-align:center; padding:1rem; color:#64748b;">⏳ 번역 중...</div>';
-
-    let htmlResults = '';
-    for (let block of textBlocks) {
-        const result = await translateText(block, targetLang);
-        const safeBlock = block.replace(/'/g, "\\'");
-        const safeResult = result.replace(/'/g, "\\'");
-
-        htmlResults += `
-            <div class="sentence-card">
-                <div class="sentence-header">
-                    <div class="sentence-text">${block}</div>
-                    <div style="display:flex; gap:0.2rem;">
-                        <button class="btn-icon" onclick="speakText('${safeBlock}', document.getElementById('sourceLangSelect').value)" title="원문 발음">🔊 원문</button>
-                        <button class="btn-icon" onclick="savePairToVocab('${safeBlock}','${safeResult}')" title="원문+번역 저장">➕ 둘 다 저장</button>
-                    </div>
-                </div>
-                <div class="translation-block">
-                    <span>💬 <b>Result (${targetLang.toUpperCase()}):</b> ${result}</span>
-                    <button class="btn-icon" onclick="speakText('${safeResult}', '${targetLang}')" title="번역 발음">🔊 번역문</button>
-                </div>
-            </div>
-        `;
-    }
-
-    sentenceList.innerHTML = htmlResults;
-
-    if (document.getElementById('autoPlaySelect').value === 'true' && textBlocks.length > 0) {
-        const firstResult = await translateText(textBlocks[0], targetLang);
-        if (firstResult && !firstResult.includes('[⚠️')) {
-            speakText(firstResult, targetLang);
-        }
-    }
+    // Manual editing is a fresh translation document. A generation token prevents stale results overwriting it.
+    translationGeneration++;
+    translationQueue.length=0;
+    const generation=translationGeneration;
+    translatedSegments=textBlocks.map(block=>({
+        id:++translationSeq, speakerId:1, text:block, result:'', targetLang, sourceLang, status:'pending', generation
+    }));
+    renderIncrementalSegments();
+    persistSessionState();
+    for(const item of translatedSegments) translationQueue.push(item);
+    pumpTranslationQueue();
 }
 
-inputText.addEventListener('input', () => { if (!activeRecognition) renderTranslation(); });
-document.getElementById('btnClear').onclick = () => { inputText.value = ''; renderTranslation(); stopSpeech(); stopSTT(true); };
+inputText.addEventListener('input', () => {
+    persistSessionState();
+    if (!activeRecognition) {
+        clearTimeout(manualTranslateTimer);
+        manualTranslateTimer=setTimeout(()=>renderTranslation(), 350);
+    }
+});
+
+function executeClearAction(){
+    const mode=document.getElementById('clearModeSelect')?.value || 'session';
+    if(mode==='all'){
+        const ok=confirm(currentUILang==='ko'?'단어장, 저장 문장, 설정을 포함한 앱 데이터를 모두 초기화할까요?':'Clear all app data including vocabulary, saved sentences, and settings?');
+        if(!ok) return;
+        stopSpeech(); stopSTT(true);
+        localStorage.clear();
+        inputText.value=''; translatedSegments=[]; savedVocab=[]; translationQueue.length=0; translationGeneration++;
+        sentenceList.innerHTML=''; renderVocabList();
+        ocrStatus.textContent=currentUILang==='ko'?'✅ 전체 앱 데이터가 초기화되었습니다.':'✅ All app data cleared.';
+        return;
+    }
+    stopSpeech(); stopSTT(true);
+    inputText.value=''; translatedSegments=[]; translationQueue.length=0; translationGeneration++;
+    sentenceList.innerHTML=''; lastRecognizedForPractice=''; lastTranslatedForPractice='';
+    localStorage.removeItem('input_text_backup_v2131h'); localStorage.removeItem('translated_segments_v2131h');
+    ocrStatus.textContent=currentUILang==='ko'?'✅ 현재 문장과 번역 결과를 지웠습니다.':'✅ Current text and translation results cleared.';
+}
+document.getElementById('btnClear').onclick = executeClearAction;
 
 window.addEventListener('DOMContentLoaded', () => {
     applyTheme(localStorage.getItem('translator_theme_v211') || 'light');
@@ -1619,9 +1665,14 @@ window.addEventListener('DOMContentLoaded', () => {
     const savedTiming=localStorage.getItem('stt_timing_v213') || 'realtime';
     saveSpeechTiming(savedTiming);
     saveSTTSessionMode(localStorage.getItem('stt_session_mode_v213e') || 'stable');
+    const transMode=document.getElementById('translationModeSelect'); if(transMode){ transMode.value=localStorage.getItem('translation_mode_v2131h') || 'auto'; }
     const voiceType=document.getElementById('voiceTypeSelect'); if(voiceType){ voiceType.value=localStorage.getItem('tts_voice_type_v213g') || 'auto'; }
     const voiceSpeed=document.getElementById('voiceSpeedSelect'); if(voiceSpeed){ voiceSpeed.value=localStorage.getItem('tts_voice_speed_v213g') || '1'; }
+    const backupText=localStorage.getItem('input_text_backup_v2131h'); if(backupText!==null) inputText.value=backupText;
+    if(translatedSegments.length) renderIncrementalSegments();
     const resultSel=document.getElementById('resultSizeSelect'); if(resultSel){ resultSel.value=String(resultWindowSize); setResultWindowSize(resultWindowSize); }
+    updateOnlineStatus();
+    syncLanguagePair();
     checkStoredModels();
 });
 </script>
